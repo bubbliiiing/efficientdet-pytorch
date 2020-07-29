@@ -66,9 +66,8 @@ def fit_one_epoch(net,focal_loss,epoch,epoch_size,epoch_size_val,gen,genval,Epoc
                                 'step/s'            : waste_time})
             pbar.update(1)
 
-            print('\nEpoch:'+ str(epoch+1) + '/' + str(Epoch))
-            print('iter:' + str(iteration) + '/' + str(epoch_size) + ' || Conf Loss: %.4f || Regression Loss: %.4f || %.4fs/step' % (total_c_loss/(iteration+1),total_r_loss/(iteration+1),waste_time))
             start_time = time.time()
+
 
     print('Start Validation')
     with tqdm(total=epoch_size_val, desc=f'Epoch {epoch + 1}/{Epoch}',postfix=dict,mininterval=0.3) as pbar:
