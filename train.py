@@ -14,6 +14,11 @@ from torch.utils.data import DataLoader
 from utils.dataloader import efficientdet_dataset_collate, EfficientdetDataset
 from nets.efficientdet import EfficientDetBackbone
 from nets.efficientdet_training import Generator, FocalLoss
+from tqdm import tqdm
+
+def get_lr(optimizer):
+    for param_group in optimizer.param_groups:
+        return param_group['lr']
 
 #---------------------------------------------------#
 #   获得类和先验框
@@ -25,56 +30,67 @@ def get_classes(classes_path):
     class_names = [c.strip() for c in class_names]
     return class_names
 
-
 def fit_one_epoch(net,focal_loss,epoch,epoch_size,epoch_size_val,gen,genval,Epoch,cuda):
     total_r_loss = 0
     total_c_loss = 0
     total_loss = 0
     val_loss = 0
     start_time = time.time()
-    for iteration, batch in enumerate(gen):
-        if iteration >= epoch_size:
-            break
-        images, targets = batch[0], batch[1]
-        with torch.no_grad():
-            if cuda:
-                images = Variable(torch.from_numpy(images).type(torch.FloatTensor)).cuda()
-                targets = [Variable(torch.from_numpy(ann).type(torch.FloatTensor)).cuda() for ann in targets]
-            else:
-                images = Variable(torch.from_numpy(images).type(torch.FloatTensor))
-                targets = [Variable(torch.from_numpy(ann).type(torch.FloatTensor)) for ann in targets]
+    with tqdm(total=epoch_size,desc=f'Epoch {epoch + 1}/{Epoch}',postfix=dict,mininterval=0.3) as pbar:
+        for iteration, batch in enumerate(gen):
+            if iteration >= epoch_size:
+                break
+            images, targets = batch[0], batch[1]
+            with torch.no_grad():
+                if cuda:
+                    images = Variable(torch.from_numpy(images).type(torch.FloatTensor)).cuda()
+                    targets = [Variable(torch.from_numpy(ann).type(torch.FloatTensor)).cuda() for ann in targets]
+                else:
+                    images = Variable(torch.from_numpy(images).type(torch.FloatTensor))
+                    targets = [Variable(torch.from_numpy(ann).type(torch.FloatTensor)) for ann in targets]
 
-        optimizer.zero_grad()
-        _, regression, classification, anchors = net(images)
-        loss, c_loss, r_loss = focal_loss(classification, regression, anchors, targets, cuda=cuda)
-        loss.backward()
-        optimizer.step()
-        
-        total_loss += loss
-        total_r_loss += r_loss
-        total_c_loss += c_loss
-        waste_time = time.time() - start_time
-        print('\nEpoch:'+ str(epoch+1) + '/' + str(Epoch))
-        print('iter:' + str(iteration) + '/' + str(epoch_size) + ' || Conf Loss: %.4f || Regression Loss: %.4f || %.4fs/step' % (total_c_loss/(iteration+1),total_r_loss/(iteration+1),waste_time))
-        start_time = time.time()
+            optimizer.zero_grad()
+            _, regression, classification, anchors = net(images)
+            loss, c_loss, r_loss = focal_loss(classification, regression, anchors, targets, cuda=cuda)
+            loss.backward()
+            optimizer.step()
+            
+            total_loss += loss
+            total_r_loss += r_loss
+            total_c_loss += c_loss
+            waste_time = time.time() - start_time
+            
+            pbar.set_postfix(**{'Conf Loss'         : total_c_loss / (iteration+1), 
+                                'Regression Loss'   : total_r_loss / (iteration+1), 
+                                'lr'                : get_lr(optimizer),
+                                'step/s'            : waste_time})
+            pbar.update(1)
+
+            print('\nEpoch:'+ str(epoch+1) + '/' + str(Epoch))
+            print('iter:' + str(iteration) + '/' + str(epoch_size) + ' || Conf Loss: %.4f || Regression Loss: %.4f || %.4fs/step' % (total_c_loss/(iteration+1),total_r_loss/(iteration+1),waste_time))
+            start_time = time.time()
 
     print('Start Validation')
-    for iteration, batch in enumerate(genval):
-        if iteration >= epoch_size_val:
-            break
-        images_val, targets_val = batch[0], batch[1]
+    with tqdm(total=epoch_size_val, desc=f'Epoch {epoch + 1}/{Epoch}',postfix=dict,mininterval=0.3) as pbar:
+        for iteration, batch in enumerate(genval):
+            if iteration >= epoch_size_val:
+                break
+            images_val, targets_val = batch[0], batch[1]
 
-        with torch.no_grad():
-            if cuda:
-                images_val = Variable(torch.from_numpy(images_val).type(torch.FloatTensor)).cuda()
-                targets_val = [Variable(torch.from_numpy(ann).type(torch.FloatTensor)).cuda() for ann in targets_val]
-            else:
-                images_val = Variable(torch.from_numpy(images_val).type(torch.FloatTensor))
-                targets_val = [Variable(torch.from_numpy(ann).type(torch.FloatTensor)) for ann in targets_val]
-            optimizer.zero_grad()
-            _, regression, classification, anchors = net(images_val)
-            loss, c_loss, r_loss = focal_loss(classification, regression, anchors, targets_val, cuda=cuda)
-            val_loss += loss
+            with torch.no_grad():
+                if cuda:
+                    images_val = Variable(torch.from_numpy(images_val).type(torch.FloatTensor)).cuda()
+                    targets_val = [Variable(torch.from_numpy(ann).type(torch.FloatTensor)).cuda() for ann in targets_val]
+                else:
+                    images_val = Variable(torch.from_numpy(images_val).type(torch.FloatTensor))
+                    targets_val = [Variable(torch.from_numpy(ann).type(torch.FloatTensor)) for ann in targets_val]
+                optimizer.zero_grad()
+                _, regression, classification, anchors = net(images_val)
+                loss, c_loss, r_loss = focal_loss(classification, regression, anchors, targets_val, cuda=cuda)
+                val_loss += loss
+
+            pbar.set_postfix(**{'total_loss': val_loss.item() / (iteration + 1)})
+            pbar.update(1)
     print('Finish Validation')
     print('\nEpoch:'+ str(epoch+1) + '/' + str(Epoch))
     print('Total Loss: %.4f || Val Loss: %.4f ' % (total_loss/(epoch_size+1),val_loss/(epoch_size_val+1)))
