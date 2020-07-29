@@ -55,9 +55,9 @@ def fit_one_epoch(net,focal_loss,epoch,epoch_size,epoch_size_val,gen,genval,Epoc
             loss.backward()
             optimizer.step()
             
-            total_loss += loss
-            total_r_loss += r_loss
-            total_c_loss += c_loss
+            total_loss += loss.items()
+            total_r_loss += r_loss.items()
+            total_c_loss += c_loss.items()
             waste_time = time.time() - start_time
             
             pbar.set_postfix(**{'Conf Loss'         : total_c_loss / (iteration+1), 
@@ -87,9 +87,9 @@ def fit_one_epoch(net,focal_loss,epoch,epoch_size,epoch_size_val,gen,genval,Epoc
                 optimizer.zero_grad()
                 _, regression, classification, anchors = net(images_val)
                 loss, c_loss, r_loss = focal_loss(classification, regression, anchors, targets_val, cuda=cuda)
-                val_loss += loss
+                val_loss += loss.items()
 
-            pbar.set_postfix(**{'total_loss': val_loss.item() / (iteration + 1)})
+            pbar.set_postfix(**{'total_loss': val_loss / (iteration + 1)})
             pbar.update(1)
     print('Finish Validation')
     print('\nEpoch:'+ str(epoch+1) + '/' + str(Epoch))
@@ -98,7 +98,7 @@ def fit_one_epoch(net,focal_loss,epoch,epoch_size,epoch_size_val,gen,genval,Epoc
     print('Saving state, iter:', str(epoch+1))
     torch.save(model.state_dict(), 'logs/Epoch%d-Total_Loss%.4f-Val_Loss%.4f.pth'%((epoch+1),total_loss/(epoch_size+1),val_loss/(epoch_size_val+1)))
     return val_loss/(epoch_size_val+1)
-    
+
 #----------------------------------------------------#
 #   检测精度mAP和pr曲线计算参考视频
 #   https://www.bilibili.com/video/BV1zE411u7Vw
