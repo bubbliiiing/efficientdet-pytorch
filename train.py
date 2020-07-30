@@ -179,9 +179,9 @@ if __name__ == "__main__":
         if Use_Data_Loader:
             train_dataset = EfficientdetDataset(lines[:num_train], (input_shape[0], input_shape[1]))
             val_dataset = EfficientdetDataset(lines[num_train:], (input_shape[0], input_shape[1]))
-            gen = DataLoader(train_dataset, batch_size=Batch_size, num_workers=0, pin_memory=True,
+            gen = DataLoader(train_dataset, batch_size=Batch_size, num_workers=4, pin_memory=True,
                                     drop_last=True, collate_fn=efficientdet_dataset_collate)
-            gen_val = DataLoader(val_dataset, batch_size=Batch_size, num_workers=0,pin_memory=True, 
+            gen_val = DataLoader(val_dataset, batch_size=Batch_size, num_workers=4,pin_memory=True, 
                                     drop_last=True, collate_fn=efficientdet_dataset_collate)
         else:
             gen = Generator(Batch_size, lines[:num_train],
@@ -216,9 +216,9 @@ if __name__ == "__main__":
         if Use_Data_Loader:
             train_dataset = EfficientdetDataset(lines[:num_train], (input_shape[0], input_shape[1]))
             val_dataset = EfficientdetDataset(lines[num_train:], (input_shape[0], input_shape[1]))
-            gen = DataLoader(train_dataset, batch_size=Batch_size, num_workers=0, pin_memory=True,
+            gen = DataLoader(train_dataset, batch_size=Batch_size, num_workers=4, pin_memory=True,
                                     drop_last=True, collate_fn=efficientdet_dataset_collate)
-            gen_val = DataLoader(val_dataset, batch_size=Batch_size, num_workers=0,pin_memory=True, 
+            gen_val = DataLoader(val_dataset, batch_size=Batch_size, num_workers=4,pin_memory=True, 
                                     drop_last=True, collate_fn=efficientdet_dataset_collate)
         else:
             gen = Generator(Batch_size, lines[:num_train],
