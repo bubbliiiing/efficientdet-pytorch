@@ -30,11 +30,12 @@ def preprocess_input(image):
 #--------------------------------------------#
 class EfficientDet(object):
     _defaults = {
-        "model_path": 'model_data/efficientdet-d0.pth',
-        "classes_path": 'model_data/coco_classes.txt',
-        "phi": 0,
-        "confidence": 0.3,
-        "cuda": True
+        "model_path"    : 'model_data/efficientdet-d0.pth',
+        "classes_path"  : 'model_data/coco_classes.txt',
+        "phi"           : 0,
+        "confidence"    : 0.3,
+        "iou"           : 0.3,
+        "cuda"          : True
     }
 
     @classmethod
@@ -109,7 +110,7 @@ class EfficientDet(object):
             detection = torch.cat([regression,classification],axis=-1)
             batch_detections = non_max_suppression(detection, len(self.class_names),
                                                     conf_thres=self.confidence,
-                                                    nms_thres=0.3)
+                                                    nms_thres=self.iou)
         try:
             batch_detections = batch_detections[0].cpu().numpy()
         except:
