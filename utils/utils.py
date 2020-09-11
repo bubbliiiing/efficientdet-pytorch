@@ -183,7 +183,7 @@ def non_max_suppression(prediction, num_classes, conf_thres=0.5, nms_thres=0.4):
             #------------------------------------------#
             keep = nms(
                 detections_class[:, :4],
-                detections_class[:, 4]*detections_class[:, 5],
+                detections_class[:, 4],
                 nms_thres
             )
             max_detections = detections_class[keep]
