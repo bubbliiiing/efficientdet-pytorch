@@ -13,14 +13,14 @@
 ### 性能情况
 | 训练数据集 | 权值文件名称 | 测试数据集 | 输入图片大小 | mAP 0.5:0.95 |
 | :-----: | :-----: | :------: | :------: | :------: |
-| COCO-Train2017 | [efficientdet-d0.pth](https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientdet-d0.pth) | COCO-Test | 512x512 | 33.1 
-| COCO-Train2017 | [efficientdet-d1.pth](https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientdet-d1.pth) | COCO-Test | 640x640 | 38.8  
-| COCO-Train2017 | [efficientdet-d2.pth](https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientdet-d2.pth) | COCO-Test | 768x768 | 42.1
-| COCO-Train2017 | [efficientdet-d3.pth](https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientdet-d3.pth) | COCO-Test | 896x896 | 45.6
-| COCO-Train2017 | [efficientdet-d4.pth](https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientdet-d4.pth) | COCO-Test | 1024x1024 | 48.8
-| COCO-Train2017 | [efficientdet-d5.pth](https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientdet-d5.pth) | COCO-Test | 1280x1280 | 50.2
-| COCO-Train2017 | [efficientdet-d6.pth](https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientdet-d6.pth) | COCO-Test | 1408x1408 | 50.7 
-| COCO-Train2017 | [efficientdet-d7.pth](https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientdet-d7.pth) | COCO-Test | 1536x1536 | 51.2  
+| COCO-Train2017 | [efficientdet-d0.pth](https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientdet-d0.pth) | COCO-Val2017 | 512x512 | 33.1 
+| COCO-Train2017 | [efficientdet-d1.pth](https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientdet-d1.pth) | COCO-Val2017 | 640x640 | 38.8  
+| COCO-Train2017 | [efficientdet-d2.pth](https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientdet-d2.pth) | COCO-Val2017 | 768x768 | 42.1
+| COCO-Train2017 | [efficientdet-d3.pth](https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientdet-d3.pth) | COCO-Val2017 | 896x896 | 45.6
+| COCO-Train2017 | [efficientdet-d4.pth](https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientdet-d4.pth) | COCO-Val2017 | 1024x1024 | 48.8
+| COCO-Train2017 | [efficientdet-d5.pth](https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientdet-d5.pth) | COCO-Val2017 | 1280x1280 | 50.2
+| COCO-Train2017 | [efficientdet-d6.pth](https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientdet-d6.pth) | COCO-Val2017 | 1408x1408 | 50.7 
+| COCO-Train2017 | [efficientdet-d7.pth](https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientdet-d7.pth) | COCO-Val2017 | 1536x1536 | 51.2  
 
 ### 所需环境
 torch==1.2.0
