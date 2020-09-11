@@ -54,7 +54,7 @@ class mAP_EfficientDet(EfficientDet):
             detection = torch.cat([regression,classification],axis=-1)
             batch_detections = non_max_suppression(detection, len(self.class_names),
                                                     conf_thres=self.confidence,
-                                                    nms_thres=0.2)
+                                                    nms_thres=0.3)
         try:
             batch_detections = batch_detections[0].cpu().numpy()
         except:
