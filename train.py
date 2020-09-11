@@ -171,7 +171,7 @@ if __name__ == "__main__":
         lr = 1e-3
         Batch_size = 4
         Init_Epoch = 0
-        Freeze_Epoch = 25
+        Freeze_Epoch = 50
         
         optimizer = optim.Adam(net.parameters(),lr,weight_decay=5e-4)
         lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=2, verbose=True)
@@ -207,8 +207,8 @@ if __name__ == "__main__":
         #--------------------------------------------#
         lr = 1e-4
         Batch_size = 4
-        Freeze_Epoch = 25
-        Unfreeze_Epoch = 50
+        Freeze_Epoch = 50
+        Unfreeze_Epoch = 100
 
         optimizer = optim.Adam(net.parameters(),lr,weight_decay=5e-4)
         lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=2, verbose=True)
