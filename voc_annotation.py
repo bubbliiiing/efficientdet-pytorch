@@ -4,7 +4,7 @@ from os import getcwd
 sets=[('2007', 'train'), ('2007', 'val'), ('2007', 'test')]
 
 wd = getcwd()
-classes = ["aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
+classes = ["Yellow", "Green", "Blue", "Cyan", "Orange", "Red", "Seat", "Other"]
 
 def convert_annotation(year, image_id, list_file):
     in_file = open('VOCdevkit/VOC%s/Annotations/%s.xml'%(year, image_id))
