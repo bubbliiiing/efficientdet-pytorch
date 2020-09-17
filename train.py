@@ -128,7 +128,7 @@ if __name__ == "__main__":
     phi = 0
     Cuda = True
     annotation_path = '2007_train.txt'
-    classes_path = 'model_data/new_classes.txt'
+    classes_path = 'model_data/voc_classes.txt'   
     #-------------------------------#
     #   Dataloder的使用
     #-------------------------------#
@@ -138,7 +138,7 @@ if __name__ == "__main__":
     num_classes = len(class_names)
 
     input_sizes = [512, 640, 768, 896, 1024, 1280, 1408, 1536]
-    input_shape = (input_sizes[phi], input_sizes[phi])
+    input_shape = (input_sizes[phi], input_sizes[phi])  #TODO Input picture size need adjust
 
     # 创建模型
     model = EfficientDetBackbone(num_classes,phi)
@@ -146,7 +146,7 @@ if __name__ == "__main__":
     #------------------------------------------------------#
     #   权值文件请看README，百度网盘下载
     #------------------------------------------------------#
-    model_path = "model_data/efficientdet-d0.pth"
+    model_path = "./weights/efficientdet-d0.pth"
     # 加快模型训练的效率
     print('Loading weights into state dict...')
     model_dict = model.state_dict() 
@@ -219,6 +219,7 @@ if __name__ == "__main__":
         for epoch in range(Init_Epoch,Freeze_Epoch):
             val_loss = fit_one_epoch(net,efficient_loss,epoch,epoch_size,epoch_size_val,gen,gen_val,Freeze_Epoch,Cuda)
             lr_scheduler.step(val_loss)
+            # TODO every epoch: precision and recall
 
     if True:
         #--------------------------------------------#
@@ -226,9 +227,7 @@ if __name__ == "__main__":
         #--------------------------------------------#
         lr = 1e-4
         Batch_size = 4
-
         Freeze_Epoch = 25
-        #原始为25/50
         Unfreeze_Epoch = 50
 
         optimizer = optim.Adam(net.parameters(),lr,weight_decay=5e-4)
@@ -259,6 +258,15 @@ if __name__ == "__main__":
         for epoch in range(Freeze_Epoch,Unfreeze_Epoch):
             val_loss = fit_one_epoch(net,efficient_loss,epoch,epoch_size,epoch_size_val,gen,gen_val,Unfreeze_Epoch,Cuda)
             lr_scheduler.step(val_loss)
+            #TODO every epoch: precision and recall
+
+
+    #TODO
+    #save weight
+    #predict picture
+    #model perform on test set, its prediction precision and recall
+
+
     #modified--↓
     model_save_path = './model_data/Trained_model/{}epoch{}_lr{}_Batch{}.pkl'.format(_curent_time(), epoch, lr, Batch_size)
     torch.save(model.state_dict(), model_save_path)   #save weight
