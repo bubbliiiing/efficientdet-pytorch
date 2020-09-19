@@ -50,7 +50,7 @@ def get_classes(classes_path):
     return class_names
 
 @time_log
-def fit_one_epoch(net,focal_loss,epoch,epoch_size,epoch_size_val,gen,genval,Epoch,cuda):
+def fit_one_epoch(model,optimizer,net,focal_loss,epoch,epoch_size,epoch_size_val,gen,genval,Epoch,cuda):
     total_r_loss = 0
     total_c_loss = 0
     total_loss = 0
@@ -220,7 +220,7 @@ def train():
             param.requires_grad = False
 
         for epoch in range(Init_Epoch,Freeze_Epoch):
-            val_loss = fit_one_epoch(net,efficient_loss,epoch,epoch_size,epoch_size_val,gen,gen_val,Freeze_Epoch,Cuda)
+            val_loss = fit_one_epoch(model,optimizer,net,efficient_loss,epoch,epoch_size,epoch_size_val,gen,gen_val,Freeze_Epoch,Cuda)
             lr_scheduler.step(val_loss)
             # TODO every epoch: precision and recall
 
