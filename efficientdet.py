@@ -31,7 +31,7 @@ def preprocess_input(image):
 class EfficientDet(object):
     _defaults = {
         # "model_path": 'model_data/efficientdet-d0.pth',
-        "classes_path": 'model_data/coco_classes.txt',
+        "classes_path": 'model_data/voc_classes.txt',
         "phi": 0,
         "confidence": 0.3,
         "cuda": True
