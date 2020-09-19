@@ -16,6 +16,23 @@ from nets.efficientdet import EfficientDetBackbone
 from nets.efficientdet_training import Generator, FocalLoss
 from tqdm import tqdm
 
+#modified--↓
+from functools import wraps
+def _curent_time():
+    from datetime import datetime
+    date = datetime.now()
+    return date.strftime("%Y%m%d_%H-%M-%S")
+def time_log(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        begin = datetime.now()
+        res = func(*args, **kwargs)
+        after = datetime.now()
+        print('===total time cost: {} costs {}'.format(func.__name__, after - begin))
+        return res
+    return wrapper
+#modified--↑
+
 def get_lr(optimizer):
     for param_group in optimizer.param_groups:
         return param_group['lr']
@@ -101,6 +118,8 @@ def fit_one_epoch(net,focal_loss,epoch,epoch_size,epoch_size_val,gen,genval,Epoc
 #   检测精度mAP和pr曲线计算参考视频
 #   https://www.bilibili.com/video/BV1zE411u7Vw
 #----------------------------------------------------#
+
+#@time_log  #modified  #注释掉才可以运行成功
 if __name__ == "__main__":
     #-------------------------------------------#
     #   训练前，请指定好phi和model_path
@@ -109,7 +128,7 @@ if __name__ == "__main__":
     phi = 0
     Cuda = True
     annotation_path = '2007_train.txt'
-    classes_path = 'model_data/voc_classes.txt'   
+    classes_path = 'model_data/new_classes.txt'
     #-------------------------------#
     #   Dataloder的使用
     #-------------------------------#
@@ -207,7 +226,9 @@ if __name__ == "__main__":
         #--------------------------------------------#
         lr = 1e-4
         Batch_size = 4
+
         Freeze_Epoch = 25
+        #原始为25/50
         Unfreeze_Epoch = 50
 
         optimizer = optim.Adam(net.parameters(),lr,weight_decay=5e-4)
@@ -238,3 +259,10 @@ if __name__ == "__main__":
         for epoch in range(Freeze_Epoch,Unfreeze_Epoch):
             val_loss = fit_one_epoch(net,efficient_loss,epoch,epoch_size,epoch_size_val,gen,gen_val,Unfreeze_Epoch,Cuda)
             lr_scheduler.step(val_loss)
+    #modified--↓
+    model_save_path = './model_data/Trained_model/{}epoch{}_lr{}_Batch{}.pkl'.format(_curent_time(), epoch, lr, Batch_size)
+    torch.save(model.state_dict(), model_save_path)   #save weight
+    # torch.save(model, model_save_path)     #save model
+    #correspond load way
+    # model_dict = model.load_state_dict(torch.load(PATH))
+    # model_dict=torch.load(PATH)
