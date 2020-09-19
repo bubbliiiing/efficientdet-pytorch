@@ -259,7 +259,7 @@ def train():
             param.requires_grad = True
 
         for epoch in range(Freeze_Epoch,Unfreeze_Epoch):
-            val_loss = fit_one_epoch(net,efficient_loss,epoch,epoch_size,epoch_size_val,gen,gen_val,Unfreeze_Epoch,Cuda)
+            val_loss = fit_one_epoch(model,optimizer,net,efficient_loss,epoch,epoch_size,epoch_size_val,gen,gen_val,Unfreeze_Epoch,Cuda)
             lr_scheduler.step(val_loss)
             #TODO every epoch: precision and recall
 
@@ -271,8 +271,8 @@ def train():
 
 
     #modified--↓
-    model_save_path = './model_data/Trained_model/{}epoch{}_lr{}_Batch{}.pkl'.format(_curent_time(), epoch, lr, Batch_size)
-    torch.save(model.state_dict(), model_save_path)   #save weight
+    # model_save_path = './model_data/Trained_model/{}epoch{}_lr{}_Batch{}.pkl'.format(_curent_time(), epoch, lr, Batch_size)
+    # torch.save(model.state_dict(), model_save_path)   #save weight
     # torch.save(model, model_save_path)     #save model
     #correspond load way
     # model_dict = model.load_state_dict(torch.load(PATH))
@@ -281,9 +281,9 @@ def train():
 def predict():
     from efficientdet import EfficientDet
     from PIL import Image
-
-    efficientdet = EfficientDet()
-    img = input('Input image filename:')
+    model_path = '' #
+    efficientdet = EfficientDet(model_path)
+    img = input('Input image filename:')   #随便
     try:
         image = Image.open(img)
     except:

@@ -30,7 +30,7 @@ def preprocess_input(image):
 #--------------------------------------------#
 class EfficientDet(object):
     _defaults = {
-        "model_path": 'model_data/efficientdet-d0.pth',
+        # "model_path": 'model_data/efficientdet-d0.pth',
         "classes_path": 'model_data/coco_classes.txt',
         "phi": 0,
         "confidence": 0.3,
@@ -47,8 +47,9 @@ class EfficientDet(object):
     #---------------------------------------------------#
     #   初始化Efficientdet
     #---------------------------------------------------#
-    def __init__(self, **kwargs):
+    def __init__(self, model_path, **kwargs):
         self.__dict__.update(self._defaults)
+        self.model_path = model_path
         self.class_names = self._get_class()
         self.generate()
     #---------------------------------------------------#
