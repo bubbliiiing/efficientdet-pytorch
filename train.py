@@ -18,17 +18,19 @@ from tqdm import tqdm
 
 #modified--↓
 from functools import wraps
+from datetime import datetime
+
 def _curent_time():
-    from datetime import datetime
     date = datetime.now()
     return date.strftime("%Y%m%d_%H-%M-%S")
+
 def time_log(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         begin = datetime.now()
         res = func(*args, **kwargs)
         after = datetime.now()
-        print('===total time cost: {} costs {}'.format(func.__name__, after - begin))
+        print('===time cost: {} costs {}'.format(func.__name__, after - begin))
         return res
     return wrapper
 #modified--↑
@@ -47,6 +49,7 @@ def get_classes(classes_path):
     class_names = [c.strip() for c in class_names]
     return class_names
 
+@time_log
 def fit_one_epoch(net,focal_loss,epoch,epoch_size,epoch_size_val,gen,genval,Epoch,cuda):
     total_r_loss = 0
     total_c_loss = 0
@@ -119,8 +122,8 @@ def fit_one_epoch(net,focal_loss,epoch,epoch_size,epoch_size_val,gen,genval,Epoc
 #   https://www.bilibili.com/video/BV1zE411u7Vw
 #----------------------------------------------------#
 
-#@time_log  #modified  #注释掉才可以运行成功
-if __name__ == "__main__":
+@time_log  #modified  #注释掉才可以运行成功
+def train():
     #-------------------------------------------#
     #   训练前，请指定好phi和model_path
     #   二者所使用Efficientdet版本要相同
@@ -138,7 +141,7 @@ if __name__ == "__main__":
     num_classes = len(class_names)
 
     input_sizes = [512, 640, 768, 896, 1024, 1280, 1408, 1536]
-    input_shape = (input_sizes[phi], input_sizes[phi])  #TODO Input picture size need adjust
+    input_shape = (input_sizes[phi], input_sizes[phi])      #TODO Input picture size need adjust
 
     # 创建模型
     model = EfficientDetBackbone(num_classes,phi)
@@ -274,3 +277,24 @@ if __name__ == "__main__":
     #correspond load way
     # model_dict = model.load_state_dict(torch.load(PATH))
     # model_dict=torch.load(PATH)
+
+def predict():
+    from efficientdet import EfficientDet
+    from PIL import Image
+
+    efficientdet = EfficientDet()
+    img = input('Input image filename:')
+    try:
+        image = Image.open(img)
+    except:
+        print('Open Error! Try again!')
+
+    else:
+        r_image = efficientdet.detect_image(image)
+        r_image.show()
+
+
+
+if __name__ == '__main__':
+    train()
+    # predict()
