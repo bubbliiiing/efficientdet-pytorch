@@ -16,9 +16,14 @@ from nets.efficientdet import EfficientDetBackbone
 from nets.efficientdet_training import Generator, FocalLoss
 from tqdm import tqdm
 
-#modified--↓
 from functools import wraps
 from datetime import datetime
+
+init_model_path =  './logs/Epoch42-Total_Loss0.2806-Val_Loss0.1099.pth'
+if not init_model_path:
+    init_model_path = "./weights/efficientdet-d0.pth"
+
+
 
 def _curent_time():
     date = datetime.now()
@@ -33,7 +38,7 @@ def time_log(func):
         print('===time cost: {} costs {}'.format(func.__name__, after - begin))
         return res
     return wrapper
-#modified--↑
+
 
 def get_lr(optimizer):
     for param_group in optimizer.param_groups:
@@ -49,7 +54,7 @@ def get_classes(classes_path):
     class_names = [c.strip() for c in class_names]
     return class_names
 
-@time_log
+# @time_log
 def fit_one_epoch(model,optimizer,net,focal_loss,epoch,epoch_size,epoch_size_val,gen,genval,Epoch,cuda):
     total_r_loss = 0
     total_c_loss = 0
@@ -81,9 +86,11 @@ def fit_one_epoch(model,optimizer,net,focal_loss,epoch,epoch_size,epoch_size_val
             waste_time = time.time() - start_time
             
             pbar.set_postfix(**{'Conf Loss'         : total_c_loss / (iteration+1), 
-                                'Regression Loss'   : total_r_loss / (iteration+1), 
-                                'lr'                : get_lr(optimizer),
-                                'step/s'            : waste_time})
+                                'Regression Loss'  : total_r_loss / (iteration+1),
+                                'precision'         : 0,
+                                'Recall'            : 0,
+                                'lr'                 : get_lr(optimizer),
+                                'time/s'            : waste_time})
             pbar.update(1)
 
             start_time = time.time()
@@ -142,6 +149,7 @@ def train():
 
     input_sizes = [512, 640, 768, 896, 1024, 1280, 1408, 1536]
     input_shape = (input_sizes[phi], input_sizes[phi])      #TODO Input picture size need adjust
+    #4000*2250
 
     # 创建模型
     model = EfficientDetBackbone(num_classes,phi)
@@ -149,11 +157,11 @@ def train():
     #------------------------------------------------------#
     #   权值文件请看README，百度网盘下载
     #------------------------------------------------------#
-    model_path = "./weights/efficientdet-d0.pth"
+
     # 加快模型训练的效率
     print('Loading weights into state dict...')
     model_dict = model.state_dict() 
-    pretrained_dict = torch.load(model_path)
+    pretrained_dict = torch.load(init_model_path)
     pretrained_dict = {k: v for k, v in pretrained_dict.items() if np.shape(model_dict[k]) ==  np.shape(v)}
     model_dict.update(pretrained_dict)
     model.load_state_dict(model_dict)
@@ -174,7 +182,6 @@ def train():
         lines = f.readlines()
     np.random.seed(10101)
     np.random.shuffle(lines)
-    np.random.seed(None)
     num_val = int(len(lines)*val_split)
     num_train = len(lines) - num_val
     
@@ -270,20 +277,11 @@ def train():
     #model perform on test set, its prediction precision and recall
 
 
-    #modified--↓
-    # model_save_path = './model_data/Trained_model/{}epoch{}_lr{}_Batch{}.pkl'.format(_curent_time(), epoch, lr, Batch_size)
-    # torch.save(model.state_dict(), model_save_path)   #save weight
-    # torch.save(model, model_save_path)     #save model
-    #correspond load way
-    # model_dict = model.load_state_dict(torch.load(PATH))
-    # model_dict=torch.load(PATH)
-
-def predict():
+def predict(model_path):
     from efficientdet import EfficientDet
     from PIL import Image
-    model_path = '' #
     efficientdet = EfficientDet(model_path)
-    img = input('Input image filename:')   #随便
+    img = "./VOCdevkit/VOC2007/JPEGImages/notag/bike1.JPG"#input('Input image filename:')   #随便
     try:
         image = Image.open(img)
     except:
@@ -296,5 +294,6 @@ def predict():
 
 
 if __name__ == '__main__':
+    model_path = './logs/Epoch42-Total_Loss0.2806-Val_Loss0.1099.pth'   #hardcore
     train()
-    # predict()
+    predict(model_path)

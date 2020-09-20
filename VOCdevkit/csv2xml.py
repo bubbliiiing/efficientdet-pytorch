@@ -1,7 +1,7 @@
 from xml.etree.ElementTree import Element, ElementTree, tostring
 import json, csv
 
-csvfile = './VOC2007/Annotations/part3.csv'   #TODO
+csvfile = './VOC2007/Annotations/TOTAL.csv'   #TODO
 xmlfile = './VOC2007/Annotations/'
 jpgpath = './VOC2007/JPEGImages/'
 
@@ -67,7 +67,7 @@ def beatau(e, level=0):
     e.tail = '\n' + '\t' * level
 
 if __name__ == '__main__':
-    JPG = ['tagbike{}'.format(i) for i in range(200,300)]   #TODO
+    JPG = ['tagbike{}'.format(i) for i in range(0,384)]   #TODO
 
     for jpg in JPG:
         et = csvtoxml(csvfile, jpg)
