@@ -28,7 +28,7 @@ loss = 'Focal_loss'
 
 loss_type = {
     'Focal_loss' : FocalLoss,
-    'Repulsion_loss': MultiBoxLoss(cfg['num_classes'], 0.5, True, 0, True, 3, 0.5, False, args.cuda)
+    # 'Repulsion_loss': MultiBoxLoss(8, 0.5, True, 0, True, 3, 0.5, False, True)   #num_classes
 }
 
 criteria = loss_type[loss]
