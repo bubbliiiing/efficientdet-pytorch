@@ -67,7 +67,7 @@ def beatau(e, level=0):
     e.tail = '\n' + '\t' * level
 
 if __name__ == '__main__':
-    JPG = ['tagbike{}'.format(i) for i in range(0,384)]   #TODO
+    JPG = ['tagbike{}'.format(i) for i in range(0,384)]     #TODO
 
     for jpg in JPG:
         et = csvtoxml(csvfile, jpg)
