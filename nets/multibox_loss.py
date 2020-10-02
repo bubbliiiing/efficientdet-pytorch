@@ -22,11 +22,12 @@ class MultiBoxLoss(nn.Module):
         See: https://arxiv.org/pdf/1512.02325.pdf for more details.
     """
 
-    def __init__(self, num_classes, overlap_thresh, prior_for_matching,
-                 bkg_label, neg_mining, neg_pos, neg_overlap, encode_target):
+    def __init__(self, num_classes=8, overlap_thresh=0.5, prior_for_matching=True,
+                 bkg_label=0, neg_mining=True, neg_pos=3, neg_overlap=0.5, encode_target=False):
+        # (8, 0.5, True, 0, True, 3, 0.5, False)
         super(MultiBoxLoss, self).__init__()
         self.use_gpu = True
-        self.num_classes = 8
+        self.num_classes = num_classes
         self.threshold = overlap_thresh
         self.background_label = bkg_label
         self.encode_target = encode_target
@@ -36,7 +37,11 @@ class MultiBoxLoss(nn.Module):
         self.neg_overlap = neg_overlap
         self.variance = [0.1, 0.2]
 
-    def forward(self, predictions, targets):
+    def forward(self, loc_data, conf_data, priors, targets, cuda=True):
+        # print("conf_data",conf_data, "priors",priors, "loc_data",loc_data)
+        # classifications, regressions, anchors, annotations
+        # loc_data, conf_data, priors, targets
+
         """Multibox Loss
         Args:
             predictions (tuple): A tuple containing loc preds, conf preds,
@@ -48,7 +53,8 @@ class MultiBoxLoss(nn.Module):
             targets (tensor): Ground truth boxes and labels for a batch,
                 shape: [batch_size,num_objs,5] (last idx is the label).
         """
-        loc_data, conf_data, priors = predictions
+        # loc_data, conf_data, priors = predictions     #input
+
         num = loc_data.size(0)
         priors = priors[:loc_data.size(1), :]
         num_priors = (priors.size(0))
@@ -58,6 +64,7 @@ class MultiBoxLoss(nn.Module):
         loc_t = torch.Tensor(num, num_priors, 4)
         loc_g = torch.Tensor(num, num_priors, 4)
         conf_t = torch.LongTensor(num, num_priors)
+
         for idx in range(num):
             predicts = loc_data[idx].data
             truths = targets[idx][:, :-1].data
@@ -83,8 +90,10 @@ class MultiBoxLoss(nn.Module):
         loc_p = loc_data[pos_idx].view(-1, 4)
         loc_t = loc_t[pos_idx].view(-1, 4)
         loc_g = loc_g[pos_idx].view(-1, 4)
+
         priors = priors[pos_idx].view(-1, 4)
         loss_l = F.smooth_l1_loss(loc_p, loc_t, size_average=False)
+
         repul_loss = RepulsionLoss(sigma=0.)
         loss_l_repul = repul_loss(loc_p, loc_g, priors)
 
@@ -114,4 +123,5 @@ class MultiBoxLoss(nn.Module):
         loss_l /= N
         loss_l_repul /= N
         loss_c /= N
+
         return loss_l, loss_l_repul, loss_c

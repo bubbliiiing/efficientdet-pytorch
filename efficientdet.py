@@ -131,7 +131,7 @@ class EfficientDet(object):
 
         for i, c in enumerate(top_label):
             predicted_class = self.class_names[c]
-            score = top_conf[i]
+            score = top_conf[i]     #confidence
 
             top, left, bottom, right = boxes[i]
             top = top - 5

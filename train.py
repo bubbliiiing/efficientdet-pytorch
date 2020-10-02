@@ -15,6 +15,7 @@ from utils.dataloader import efficientdet_dataset_collate, EfficientdetDataset
 from nets.efficientdet import EfficientDetBackbone
 from nets.efficientdet_training import Generator, FocalLoss
 from nets.multibox_loss import MultiBoxLoss
+from nets.repulsion_loss import RepulsionLoss
 from tqdm import tqdm
 
 from functools import wraps
@@ -24,12 +25,15 @@ init_model_path = None  # './logs/Epoch42-Total_Loss0.2806-Val_Loss0.1099.pth'
 if not init_model_path:
     init_model_path = "./weights/efficientdet-d0.pth"
 
-loss = 'Focal_loss'
+loss = 'M'
 
 loss_type = {
-    'Focal_loss' : FocalLoss,
-    # 'Repulsion_loss': MultiBoxLoss(8, 0.5, True, 0, True, 3, 0.5, False, True)   #num_classes
+    'F' : FocalLoss,
+    'M': MultiBoxLoss,       #num_classes
+    'R': RepulsionLoss
 }
+
+# test_loss = RepulsionLoss()
 
 criteria = loss_type[loss]
 
@@ -89,7 +93,7 @@ def fit_one_epoch(model, optimizer, net, criteria_loss, epoch, epoch_size, epoch
             optimizer.zero_grad()
             _, regression, classification, anchors = net(images)
             loss, c_loss, r_loss = criteria_loss(classification, regression, anchors, targets, cuda=cuda)
-
+            # rep_loss = test_loss(classification, regression, anchors, targets)
             loss.backward()
             optimizer.step()
 
@@ -100,8 +104,8 @@ def fit_one_epoch(model, optimizer, net, criteria_loss, epoch, epoch_size, epoch
 
             pbar.set_postfix(**{'Conf Loss': total_c_loss / (iteration + 1),
                                 'Regression Loss': total_r_loss / (iteration + 1),
-                                'precision': 0,  # assign to Dai
-                                'Recall': 0,  #
+                                # 'precision': 0,  # assign to Dai
+                                # 'Recall':    0,  #
                                 'lr': get_lr(optimizer),
                                 'time/s': waste_time})
             pbar.update(1)
@@ -191,7 +195,7 @@ def train():
         cudnn.benchmark = True
         net = net.cuda()
 
-    efficient_loss = criteria()       # TODO loss: repulsive loss
+    efficient_loss = criteria()         # TODO loss: repulsive loss
 
     # 0.1用于验证，0.9用于训练
     val_split = 0.1
@@ -215,7 +219,7 @@ def train():
         #   BATCH_SIZE不要太小，不然训练效果很差
         # --------------------------------------------#
         lr = 1e-3
-        Batch_size = 4
+        Batch_size = 1
         Init_Epoch = 0
         Freeze_Epoch = 25
 

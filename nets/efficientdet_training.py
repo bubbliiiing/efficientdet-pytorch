@@ -8,7 +8,7 @@ import torch.nn.functional as F
 import cv2
 from matplotlib.colors import rgb_to_hsv, hsv_to_rgb
 from PIL import Image
-
+from .RepulsionLoss.my_repulsion_loss import repulsion
 
 def preprocess_input(image):
     image /= 255
@@ -89,6 +89,7 @@ class FocalLoss(nn.Module):
         batch_size = classifications.shape[0]
         classification_losses = []
         regression_losses = []
+        repulsion_losses = []
 
         # 获得先验框，将先验框转换成中心宽高的形势
         anchor = anchors[0, :, :].to(dtype)
@@ -123,8 +124,10 @@ class FocalLoss(nn.Module):
                 
                 if cuda:
                     regression_losses.append(torch.tensor(0).to(dtype).cuda())
+                    repulsion_losses.append(torch.tensor(0).to(dtype).cuda())
                 else:
                     regression_losses.append(torch.tensor(0).to(dtype))
+                    repulsion_losses.append(torch.tensor(0).to(dtype))
                 classification_losses.append(cls_loss.sum())
                 continue
 
@@ -146,24 +149,35 @@ class FocalLoss(nn.Module):
             if cuda:
                 zeros = zeros.cuda()
             cls_loss = torch.where(torch.ne(targets, -1.0), cls_loss, zeros)
-            classification_losses.append(cls_loss.sum() / torch.clamp(num_positive_anchors.to(dtype), min=1.0))
-            # smoooth_l1
+            classification_losses.append(cls_loss.sum() / torch.clamp(num_positive_anchors.to(dtype), min=1.0))   # cross_entropy ??
+
+
+            # smoooth_l1  & repulsion_loss
             if positive_indices.sum() > 0:
                 targets = encode_bbox(assigned_annotations, positive_indices, anchor_widths, anchor_heights, anchor_ctr_x, anchor_ctr_y)
                
-                regression_diff = torch.abs(targets - regression[positive_indices, :])
-
+                regression_diff = torch.abs(targets - regression[positive_indices, :])  #
+                # smoooth_l1
                 regression_loss = torch.where(
                     torch.le(regression_diff, 1.0 / 9.0),
                     0.5 * 9.0 * torch.pow(regression_diff, 2),
                     regression_diff - 0.5 / 9.0
                 )
+
                 regression_losses.append(regression_loss.mean())
+
+                # repulsion_loss
+                loss_RepGT, loss_RepBox = repulsion(targets, regression[positive_indices, :])
+                print("repulsion_loss: ", loss_RepGT, loss_RepBox)
+                # repulsion_losses.append(repulsion_loss.mean())
+
             else:
                 if cuda:
                     regression_losses.append(torch.tensor(0).to(dtype).cuda())
+                    repulsion_losses.append(torch.tensor(0).to(dtype).cuda())
                 else:
                     regression_losses.append(torch.tensor(0).to(dtype))
+                    repulsion_losses.append(torch.tensor(0).to(dtype))
         
         c_loss = torch.stack(classification_losses).mean()
         r_loss = torch.stack(regression_losses).mean()
