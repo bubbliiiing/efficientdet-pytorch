@@ -98,7 +98,10 @@ class FocalLoss(nn.Module):
         anchor_heights = anchor[:, 2] - anchor[:, 0]
         anchor_ctr_x = anchor[:, 1] + 0.5 * anchor_widths
         anchor_ctr_y = anchor[:, 0] + 0.5 * anchor_heights
-
+        
+        rep_target = []
+        rep_regres = []
+        
         for j in range(batch_size):
             # 取出真实框
             bbox_annotation = annotations[j]
@@ -165,11 +168,13 @@ class FocalLoss(nn.Module):
                 )
 
                 regression_losses.append(regression_loss.mean())
-
+                rep_target.append(targets)
+                rep_regres.append(regression[positive_indices, :])
                 # repulsion_loss
-                loss_RepGT, loss_RepBox = repulsion(targets, regression[positive_indices, :])
-                print("repulsion_loss: ", loss_RepGT, loss_RepBox)
-                # repulsion_losses.append(repulsion_loss.mean())
+
+                # print("repulsion_loss: ", loss_RepGT, loss_RepBox)
+
+
 
             else:
                 if cuda:
@@ -181,7 +186,11 @@ class FocalLoss(nn.Module):
         
         c_loss = torch.stack(classification_losses).mean()
         r_loss = torch.stack(regression_losses).mean()
-        loss = c_loss + r_loss
+        loss_RepGT = repulsion(rep_target, rep_regres)  #, loss_RepBox
+
+        repu_loss = loss_RepGT.mean()
+        # print("repuloss:", repu_loss)
+        loss = c_loss + r_loss + repu_loss
         return loss, c_loss, r_loss
 
 

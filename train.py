@@ -25,7 +25,7 @@ init_model_path = None  # './logs/Epoch42-Total_Loss0.2806-Val_Loss0.1099.pth'
 if not init_model_path:
     init_model_path = "./weights/efficientdet-d0.pth"
 
-loss = 'M'
+loss = 'F'
 
 loss_type = {
     'F' : FocalLoss,
@@ -219,7 +219,7 @@ def train():
         #   BATCH_SIZE不要太小，不然训练效果很差
         # --------------------------------------------#
         lr = 1e-3
-        Batch_size = 1
+        Batch_size = 4
         Init_Epoch = 0
         Freeze_Epoch = 25
 
