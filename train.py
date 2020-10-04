@@ -92,6 +92,7 @@ def fit_one_epoch(model, optimizer, net, criteria_loss, epoch, epoch_size, epoch
 
             optimizer.zero_grad()
             _, regression, classification, anchors = net(images)
+
             loss, c_loss, r_loss = criteria_loss(classification, regression, anchors, targets, cuda=cuda)
             # rep_loss = test_loss(classification, regression, anchors, targets)
             loss.backward()

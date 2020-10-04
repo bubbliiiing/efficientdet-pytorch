@@ -105,7 +105,6 @@ class FocalLoss(nn.Module):
         for j in range(batch_size):
             # 取出真实框
             bbox_annotation = annotations[j]
-
             # 获得每张图片的分类结果和回归预测结果
             classification = classifications[j, :, :]
             regression = regressions[j, :, :]
@@ -136,7 +135,11 @@ class FocalLoss(nn.Module):
 
             # 获得目标预测结果
             targets, num_positive_anchors, positive_indices, assigned_annotations = get_target(anchor, bbox_annotation, classification, cuda)
-            
+
+            rep_target.append(bbox_annotation[:, 0:4])
+            rep_regres.append(anchor[positive_indices,:])
+
+
             alpha_factor = torch.ones_like(targets) * alpha
             if cuda:
                 alpha_factor = alpha_factor.cuda()
@@ -168,12 +171,6 @@ class FocalLoss(nn.Module):
                 )
 
                 regression_losses.append(regression_loss.mean())
-                rep_target.append(targets)
-                rep_regres.append(regression[positive_indices, :])
-                # repulsion_loss
-
-                # print("repulsion_loss: ", loss_RepGT, loss_RepBox)
-
 
 
             else:
@@ -183,13 +180,18 @@ class FocalLoss(nn.Module):
                 else:
                     regression_losses.append(torch.tensor(0).to(dtype))
                     repulsion_losses.append(torch.tensor(0).to(dtype))
-        
+
+
         c_loss = torch.stack(classification_losses).mean()
         r_loss = torch.stack(regression_losses).mean()
-        loss_RepGT = repulsion(rep_target, rep_regres)  #, loss_RepBox
+        # Repulsion
+        # rep_target = torch.tensor(rep_target, dtype=torch.float16)
+        # rep_regres = torch.tensor(rep_regres, dtype=torch.float16)
+        loss_RepGT = repulsion(rep_target, rep_regres)  # anchor
 
         repu_loss = loss_RepGT.mean()
-        # print("repuloss:", repu_loss)
+        print("\nrepuloss:", repu_loss)
+
         loss = c_loss + r_loss + repu_loss
         return loss, c_loss, r_loss
 
