@@ -4,7 +4,8 @@ from os import getcwd
 sets=[('2007', 'train'), ('2007', 'val'), ('2007', 'test')]
 
 wd = getcwd()
-classes = ["Yellow", "Green", "Blue", "Cyan", "Orange", "Red", "Seat", "Other"]
+# classes = ["Yellow", "Green", "Blue", "Cyan", "Orange", "Red", "Seat", "Other"]
+classes = ["Bike", "Seat"]
 
 def convert_annotation(year, image_id, list_file):
     in_file = open('VOCdevkit/VOC%s/Annotations/%s.xml'%(year, image_id))
@@ -17,7 +18,7 @@ def convert_annotation(year, image_id, list_file):
     for obj in root.iter('object'):
         cls = obj.find('name').text
         if cls not in classes:        # or int(difficult)==1:
-            continue
+            cls = "Bike"
         cls_id = classes.index(cls)
         xmlbox = obj.find('bndbox')
         b = (int(xmlbox.find('xmin').text), int(xmlbox.find('ymin').text), int(xmlbox.find('xmax').text), int(xmlbox.find('ymax').text))

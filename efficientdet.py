@@ -24,6 +24,18 @@ def preprocess_input(image):
     image /= std
     return image
 
+def precision(box, pred_num):
+    """
+    Output num_precision and boxes_precision
+    IoU > confidence
+    """
+    print('Precision : {:.2f}%'.format(pred_num/len(box)*100))
+
+
+
+
+
+
 #--------------------------------------------#
 #   使用自己训练好的模型预测需要修改3个参数
 #   model_path和classes_path和phi都需要修改！
@@ -33,7 +45,7 @@ class EfficientDet(object):
         # "model_path": 'model_data/efficientdet-d0.pth',
         "classes_path": 'model_data/voc_classes.txt',
         "phi": 0,
-        "confidence": 0.3,
+        "confidence": 0.2,
         "cuda": True
     }
 
@@ -125,13 +137,19 @@ class EfficientDet(object):
         # 去掉灰条
         boxes = efficientdet_correct_boxes(top_ymin,top_xmin,top_ymax,top_xmax,np.array([image_sizes[self.phi],image_sizes[self.phi]]),image_shape)
 
-        font = ImageFont.truetype(font='model_data/simhei.ttf',size=np.floor(3e-2 * np.shape(image)[1] + 0.5).astype('int32'))
+
+
+        font = ImageFont.truetype(font='model_data/simhei.ttf',size=np.floor(1.5e-2 * np.shape(image)[1] + 0.5).astype('int32'))
 
         thickness = (np.shape(image)[0] + np.shape(image)[1]) // image_sizes[self.phi]
 
+        total_predict = 0
         for i, c in enumerate(top_label):
+
             predicted_class = self.class_names[c]
             score = top_conf[i]     #confidence
+            if score > self.confidence:
+                total_predict += 1
 
             top, left, bottom, right = boxes[i]
             top = top - 5
@@ -165,5 +183,6 @@ class EfficientDet(object):
                 fill=self.colors[self.class_names.index(predicted_class)])
             draw.text(text_origin, str(label,'UTF-8'), fill=(0, 0, 0), font=font)
             del draw
+        precision(boxes, total_predict)
         return image
 

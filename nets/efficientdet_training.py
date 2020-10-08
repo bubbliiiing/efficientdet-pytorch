@@ -193,7 +193,7 @@ class FocalLoss(nn.Module):
         print("\nrepuloss:", repu_loss)
 
         loss = c_loss + r_loss + repu_loss
-        return loss, c_loss, r_loss
+        return loss, c_loss, r_loss, repu_loss
 
 
 def rand(a=0, b=1):

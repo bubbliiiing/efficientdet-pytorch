@@ -21,7 +21,11 @@ from tqdm import tqdm
 from functools import wraps
 from datetime import datetime
 
-init_model_path = None  # './logs/Epoch42-Total_Loss0.2806-Val_Loss0.1099.pth'
+train_type = 0   #  1 for train
+
+
+
+init_model_path = './logs/Epoch50-Total_Loss0.6522-Val_Loss0.6001.pth'
 if not init_model_path:
     init_model_path = "./weights/efficientdet-d0.pth"
 
@@ -74,6 +78,7 @@ def get_classes(classes_path):
 def fit_one_epoch(model, optimizer, net, criteria_loss, epoch, epoch_size, epoch_size_val, gen, genval, Epoch, cuda):
     total_r_loss = 0
     total_c_loss = 0
+    total_repu_loss = 0
     total_loss = 0
     val_loss = 0
     start_time = time.time()
@@ -93,7 +98,7 @@ def fit_one_epoch(model, optimizer, net, criteria_loss, epoch, epoch_size, epoch
             optimizer.zero_grad()
             _, regression, classification, anchors = net(images)
 
-            loss, c_loss, r_loss = criteria_loss(classification, regression, anchors, targets, cuda=cuda)
+            loss, c_loss, r_loss, repu_loss = criteria_loss(classification, regression, anchors, targets, cuda=cuda)
             # rep_loss = test_loss(classification, regression, anchors, targets)
             loss.backward()
             optimizer.step()
@@ -101,12 +106,13 @@ def fit_one_epoch(model, optimizer, net, criteria_loss, epoch, epoch_size, epoch
             total_loss += loss.item()
             total_r_loss += r_loss.item()
             total_c_loss += c_loss.item()
+            total_repu_loss += repu_loss.item()
             waste_time = time.time() - start_time
 
-            pbar.set_postfix(**{'Conf Loss': total_c_loss / (iteration + 1),
+            pbar.set_postfix(**{'Total Loss' : total_loss / (iteration + 1),
+                                'Conf Loss': total_c_loss / (iteration + 1),
                                 'Regression Loss': total_r_loss / (iteration + 1),
-                                # 'precision': 0,  # assign to Dai
-                                # 'Recall':    0,  #
+                                'Repulsion Loss': total_repu_loss / (iteration + 1),
                                 'lr': get_lr(optimizer),
                                 'time/s': waste_time})
             pbar.update(1)
@@ -157,6 +163,7 @@ def train():
     #   训练前，请指定好phi和model_path
     #   二者所使用Efficientdet版本要相同
     # -------------------------------------------#
+    lr = 1e-3
     phi = 0
     Cuda = True
     annotation_path = '2007_train.txt'
@@ -219,7 +226,7 @@ def train():
         # --------------------------------------------#
         #   BATCH_SIZE不要太小，不然训练效果很差
         # --------------------------------------------#
-        lr = 1e-3
+
         Batch_size = 4
         Init_Epoch = 0
         Freeze_Epoch = 25
@@ -258,8 +265,8 @@ def train():
         # --------------------------------------------#
         #   BATCH_SIZE不要太小，不然训练效果很差
         # --------------------------------------------#
-        lr = 1e-4
-        Batch_size = 4  #
+        lr = lr/10
+        Batch_size = 2  #
         Freeze_Epoch = 25
         Unfreeze_Epoch = 50
 
@@ -297,18 +304,26 @@ def predict(model_path):
     from efficientdet import EfficientDet
     from PIL import Image
     efficientdet = EfficientDet(model_path)
-    img = "./VOCdevkit/VOC2007/JPEGImages/notag/bike3.JPG"  # input('Input image filename:')   #随便
-    try:
-        image = Image.open(img)
-    except:
-        print('Open Error! Try again!')
+    # img = "./VOCdevkit/VOC2007/JPEGImages/notag/bike{}.JPG"  # input('Input image filename:')   #随便
+    img = "./VOCdevkit/VOC2007/JPEGImages/tagbike{}.JPG"
+    while True:
+        I = input("Input a number:\n")
+        try:
+            image = Image.open(img.format(I))
+        except:
+            if I == 'q':
+                break
+            print('Open Error! Try again!')
 
-    else:
-        r_image = efficientdet.detect_image(image)
-        r_image.show()
+        else:
+            r_image = efficientdet.detect_image(image)
+            r_image.show()
 
 
 if __name__ == '__main__':
-    model_path = './logs/Epoch42-Total_Loss0.2806-Val_Loss0.1099.pth'  # hardcore, assign to Durbin
-    train()
-    predict(model_path)
+    # model_path = './logs/Epoch50-Total_Loss0.6522-Val_Loss0.6001.pth'  # hardcore, assign to Durbin
+    if train_type:
+        train()
+    else:
+        #reducing learning rate of group 0 to 6.2500e-06.
+        predict(init_model_path)

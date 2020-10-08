@@ -1,8 +1,8 @@
+Bike
+Seat
 Yellow
 Green
 Blue
 Cyan
 Orange
 Red
-Seat
-Other
