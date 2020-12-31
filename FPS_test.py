@@ -69,7 +69,6 @@ class FPS_EfficientDet(EfficientDet):
         for _ in range(test_interval):
             with torch.no_grad():
                 _, regression, classification, anchors = self.net(images)
-                print(time.time()-a)
                 regression = decodebox(regression, anchors, images)
                 detection = torch.cat([regression,classification],axis=-1)
                 batch_detections = non_max_suppression(detection, len(self.class_names),
