@@ -68,7 +68,6 @@ class FPS_EfficientDet(EfficientDet):
         t1 = time.time()
         for _ in range(test_interval):
             with torch.no_grad():
-                a = time.time()
                 _, regression, classification, anchors = self.net(images)
                 print(time.time()-a)
                 regression = decodebox(regression, anchors, images)
