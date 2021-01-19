@@ -14,23 +14,43 @@ from torchvision.ops import nms
 def decodebox(regression, anchors, img):
     dtype = regression.dtype
     anchors = anchors.to(dtype)
+    #--------------------------------------#
+    #   计算先验框的中心
+    #--------------------------------------#
     y_centers_a = (anchors[..., 0] + anchors[..., 2]) / 2
     x_centers_a = (anchors[..., 1] + anchors[..., 3]) / 2
 
+    #--------------------------------------#
+    #   计算先验框的宽高
+    #--------------------------------------#
     ha = anchors[..., 2] - anchors[..., 0]
     wa = anchors[..., 3] - anchors[..., 1]
 
+    #--------------------------------------#
+    #   计算调整后先验框的宽高
+    #   即计算预测框的宽高
+    #--------------------------------------#
     w = regression[..., 3].exp() * wa
     h = regression[..., 2].exp() * ha
 
+    #--------------------------------------#
+    #   计算调整后先验框的中心
+    #   即计算预测框的中心
+    #--------------------------------------#
     y_centers = regression[..., 0] * ha + y_centers_a
     x_centers = regression[..., 1] * wa + x_centers_a
 
+    #--------------------------------------#
+    #   计算预测框的左上角右下角
+    #--------------------------------------#
     ymin = y_centers - h / 2.
     xmin = x_centers - w / 2.
     ymax = y_centers + h / 2.
     xmax = x_centers + w / 2.
 
+    #--------------------------------------#
+    #   将预测框的结果进行堆叠
+    #--------------------------------------#
     boxes = torch.stack([xmin, ymin, xmax, ymax], dim=2)
 
     _, _, height, width = np.shape(img)

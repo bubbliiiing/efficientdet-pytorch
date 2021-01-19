@@ -34,19 +34,21 @@ video.py里面测试的FPS会低于该FPS，因为摄像头的读取频率有限
 '''
 class FPS_EfficientDet(EfficientDet):
     def get_FPS(self, image, test_interval):
-        # 调整图片使其符合输入要求
         image_shape = np.array(np.shape(image)[0:2])
-        crop_img = np.array(letterbox_image(image, (image_sizes[self.phi],image_sizes[self.phi])))
+        #---------------------------------------------------------#
+        #   给图像增加灰条，实现不失真的resize
+        #---------------------------------------------------------#
+        crop_img = np.array(letterbox_image(image, (image_sizes[self.phi], image_sizes[self.phi])))
         photo = np.array(crop_img,dtype = np.float32)
         photo = np.transpose(preprocess_input(photo), (2, 0, 1))
-        images = []
-        images.append(photo)
-        images = np.asarray(images)
+
         with torch.no_grad():
-            images = torch.from_numpy(images)
+            images = torch.from_numpy(np.asarray([photo]))
             if self.cuda:
                 images = images.cuda()
+                
             _, regression, classification, anchors = self.net(images)
+            
             regression = decodebox(regression, anchors, images)
             detection = torch.cat([regression,classification],axis=-1)
             batch_detections = non_max_suppression(detection, len(self.class_names),
@@ -56,11 +58,10 @@ class FPS_EfficientDet(EfficientDet):
                 batch_detections = batch_detections[0].cpu().numpy()
                 top_index = batch_detections[:,4] > self.confidence
                 top_conf = batch_detections[top_index,4]
-                top_label = np.array(batch_detections[top_index,-1],np.int32)
+                top_label = np.array(batch_detections[top_index,-1], np.int32)
                 top_bboxes = np.array(batch_detections[top_index,:4])
                 top_xmin, top_ymin, top_xmax, top_ymax = np.expand_dims(top_bboxes[:,0],-1),np.expand_dims(top_bboxes[:,1],-1),np.expand_dims(top_bboxes[:,2],-1),np.expand_dims(top_bboxes[:,3],-1)
 
-                # 去掉灰条
                 boxes = efficientdet_correct_boxes(top_ymin,top_xmin,top_ymax,top_xmax,np.array([image_sizes[self.phi],image_sizes[self.phi]]),image_shape)
             except:
                 pass 
@@ -69,6 +70,7 @@ class FPS_EfficientDet(EfficientDet):
         for _ in range(test_interval):
             with torch.no_grad():
                 _, regression, classification, anchors = self.net(images)
+                
                 regression = decodebox(regression, anchors, images)
                 detection = torch.cat([regression,classification],axis=-1)
                 batch_detections = non_max_suppression(detection, len(self.class_names),
@@ -78,11 +80,10 @@ class FPS_EfficientDet(EfficientDet):
                     batch_detections = batch_detections[0].cpu().numpy()
                     top_index = batch_detections[:,4] > self.confidence
                     top_conf = batch_detections[top_index,4]
-                    top_label = np.array(batch_detections[top_index,-1],np.int32)
+                    top_label = np.array(batch_detections[top_index,-1], np.int32)
                     top_bboxes = np.array(batch_detections[top_index,:4])
                     top_xmin, top_ymin, top_xmax, top_ymax = np.expand_dims(top_bboxes[:,0],-1),np.expand_dims(top_bboxes[:,1],-1),np.expand_dims(top_bboxes[:,2],-1),np.expand_dims(top_bboxes[:,3],-1)
 
-                    # 去掉灰条
                     boxes = efficientdet_correct_boxes(top_ymin,top_xmin,top_ymax,top_xmax,np.array([image_sizes[self.phi],image_sizes[self.phi]]),image_shape)
                 except:
                     pass 

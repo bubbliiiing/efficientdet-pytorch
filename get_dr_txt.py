@@ -1,21 +1,24 @@
-#-------------------------------------#
-#       mAP所需文件计算代码
-#       具体教程请查看Bilibili
-#       Bubbliiiing
-#-------------------------------------#
-import cv2
-import numpy as np
+#----------------------------------------------------#
+#   获取测试集的ground-truth
+#   具体视频教程可查看
+#   https://www.bilibili.com/video/BV1zE411u7Vw
+#----------------------------------------------------#
 import colorsys
 import os
+
+import cv2
+import numpy as np
 import torch
-import torch.nn as nn
 import torch.backends.cudnn as cudnn
-from tqdm import tqdm
+import torch.nn as nn
+from PIL import Image, ImageDraw, ImageFont
 from torch.autograd import Variable
+from tqdm import tqdm
+
 from efficientdet import EfficientDet
 from nets.efficientdet import EfficientDetBackbone
-from PIL import Image,ImageFont, ImageDraw
-from utils.utils import non_max_suppression, bbox_iou, decodebox, letterbox_image, efficientdet_correct_boxes
+from utils.utils import (bbox_iou, decodebox, efficientdet_correct_boxes,
+                         letterbox_image, non_max_suppression)
 
 image_sizes = [512, 640, 768, 896, 1024, 1280, 1280, 1536]
 
@@ -36,38 +39,52 @@ class mAP_EfficientDet(EfficientDet):
         self.iou = 0.5
         f = open("./input/detection-results/"+image_id+".txt","w") 
         image_shape = np.array(np.shape(image)[0:2])
-
-        crop_img = np.array(letterbox_image(image, (image_sizes[self.phi],image_sizes[self.phi])))
+        #---------------------------------------------------------#
+        #   给图像增加灰条，实现不失真的resize
+        #---------------------------------------------------------#
+        crop_img = np.array(letterbox_image(image, (image_sizes[self.phi], image_sizes[self.phi])))
         photo = np.array(crop_img,dtype = np.float32)
         photo = np.transpose(preprocess_input(photo), (2, 0, 1))
-        images = []
-        images.append(photo)
-        images = np.asarray(images)
 
         with torch.no_grad():
-            images = torch.from_numpy(images)
+            images = torch.from_numpy(np.asarray([photo]))
             if self.cuda:
                 images = images.cuda()
+
+            #---------------------------------------------------------#
+            #   传入网络当中进行预测
+            #---------------------------------------------------------#
             _, regression, classification, anchors = self.net(images)
             
+            #-----------------------------------------------------------#
+            #   将预测结果进行解码
+            #-----------------------------------------------------------#
             regression = decodebox(regression, anchors, images)
             detection = torch.cat([regression,classification],axis=-1)
             batch_detections = non_max_suppression(detection, len(self.class_names),
                                                     conf_thres=self.confidence,
                                                     nms_thres=self.iou)
-        try:
-            batch_detections = batch_detections[0].cpu().numpy()
-        except:
-            return 
-            
-        top_index = batch_detections[:,4] > self.confidence
-        top_conf = batch_detections[top_index,4]
-        top_label = np.array(batch_detections[top_index,-1],np.int32)
-        top_bboxes = np.array(batch_detections[top_index,:4])
-        top_xmin, top_ymin, top_xmax, top_ymax = np.expand_dims(top_bboxes[:,0],-1),np.expand_dims(top_bboxes[:,1],-1),np.expand_dims(top_bboxes[:,2],-1),np.expand_dims(top_bboxes[:,3],-1)
+            #--------------------------------------#
+            #   如果没有检测到物体，则返回原图
+            #--------------------------------------#
+            try:
+                batch_detections = batch_detections[0].cpu().numpy()
+            except:
+                return 
+                
+            #-----------------------------------------------------------#
+            #   筛选出其中得分高于confidence的框 
+            #-----------------------------------------------------------#
+            top_index = batch_detections[:,4] > self.confidence
+            top_conf = batch_detections[top_index,4]
+            top_label = np.array(batch_detections[top_index,-1], np.int32)
+            top_bboxes = np.array(batch_detections[top_index,:4])
+            top_xmin, top_ymin, top_xmax, top_ymax = np.expand_dims(top_bboxes[:,0],-1),np.expand_dims(top_bboxes[:,1],-1),np.expand_dims(top_bboxes[:,2],-1),np.expand_dims(top_bboxes[:,3],-1)
 
-        # 去掉灰条
-        boxes = efficientdet_correct_boxes(top_ymin,top_xmin,top_ymax,top_xmax,np.array([image_sizes[self.phi],image_sizes[self.phi]]),image_shape)
+            #-----------------------------------------------------------#
+            #   去掉灰条部分
+            #-----------------------------------------------------------#
+            boxes = efficientdet_correct_boxes(top_ymin,top_xmin,top_ymax,top_xmax,np.array([image_sizes[self.phi],image_sizes[self.phi]]),image_shape)
 
         for i, c in enumerate(top_label):
             predicted_class = self.class_names[c]

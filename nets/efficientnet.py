@@ -2,17 +2,10 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from nets.layers import (
-    round_filters,
-    round_repeats,
-    drop_connect,
-    get_same_padding_conv2d,
-    get_model_params,
-    efficientnet_params,
-    load_pretrained_weights,
-    Swish,
-    MemoryEfficientSwish,
-)
+from nets.layers import (MemoryEfficientSwish, Swish, drop_connect,
+                         efficientnet_params, get_model_params,
+                         get_same_padding_conv2d, load_pretrained_weights,
+                         round_filters, round_repeats)
 
 
 class MBConvBlock(nn.Module):
@@ -26,76 +19,101 @@ class MBConvBlock(nn.Module):
      BlockArgs(kernel_size=5, num_repeat=4, input_filters=112, output_filters=192, expand_ratio=6, id_skip=True, stride=[2], se_ratio=0.25), 
      BlockArgs(kernel_size=3, num_repeat=1, input_filters=192, output_filters=320, expand_ratio=6, id_skip=True, stride=[1], se_ratio=0.25)]
     
-    GlobalParams(batch_norm_momentum=0.99, batch_norm_epsilon=0.001, dropout_rate=0.2, num_classes=1000, width_coefficient=1.0, 
+     GlobalParams(batch_norm_momentum=0.99, batch_norm_epsilon=0.001, dropout_rate=0.2, num_classes=1000, width_coefficient=1.0, 
                     depth_coefficient=1.0, depth_divisor=8, min_depth=None, drop_connect_rate=0.2, image_size=224)
     '''
     def __init__(self, block_args, global_params):
         super().__init__()
         self._block_args = block_args
+        # 获得一种卷积方法
+        Conv2d = get_same_padding_conv2d(image_size=global_params.image_size)
+
         # 获得标准化的参数
         self._bn_mom = 1 - global_params.batch_norm_momentum
         self._bn_eps = global_params.batch_norm_epsilon
 
-        # 注意力机制的缩放比例
-        self.has_se = (self._block_args.se_ratio is not None) and (
-            0 < self._block_args.se_ratio <= 1)
-        # 是否需要短接边
+        #----------------------------#
+        #   计算是否施加注意力机制
+        #----------------------------#
+        self.has_se = (self._block_args.se_ratio is not None) and (0 < self._block_args.se_ratio <= 1)
+        #----------------------------#
+        #   判断是否添加残差边
+        #----------------------------#
         self.id_skip = block_args.id_skip 
 
-        Conv2d = get_same_padding_conv2d(image_size=global_params.image_size)
-
-        # 1x1卷积通道扩张
-        inp = self._block_args.input_filters  # number of input channels
-        oup = self._block_args.input_filters * self._block_args.expand_ratio  # number of output channels
+        #-------------------------------------------------#
+        #   利用Inverted residuals
+        #   part1 利用1x1卷积进行通道数上升
+        #-------------------------------------------------#
+        inp = self._block_args.input_filters
+        oup = self._block_args.input_filters * self._block_args.expand_ratio
         if self._block_args.expand_ratio != 1:
-            self._expand_conv = Conv2d(
-                in_channels=inp, out_channels=oup, kernel_size=1, bias=False)
-            self._bn0 = nn.BatchNorm2d(
-                num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
+            self._expand_conv = Conv2d(in_channels=inp, out_channels=oup, kernel_size=1, bias=False)
+            self._bn0 = nn.BatchNorm2d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
 
-        # 深度可分离卷积
+        #------------------------------------------------------#
+        #   如果步长为2x2的话，利用深度可分离卷积进行高宽压缩
+        #   part2 利用3x3卷积对每一个channel进行卷积
+        #------------------------------------------------------#
         k = self._block_args.kernel_size
         s = self._block_args.stride
-        self._depthwise_conv = Conv2d(
-            in_channels=oup, out_channels=oup, groups=oup,
-            kernel_size=k, stride=s, bias=False)
-        self._bn1 = nn.BatchNorm2d(
-            num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
+        self._depthwise_conv = Conv2d(in_channels=oup, out_channels=oup, groups=oup, kernel_size=k, stride=s, bias=False)
+        self._bn1 = nn.BatchNorm2d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
 
-        # 注意力机制模块组，先进行通道数的收缩再进行通道数的扩张
+        #------------------------------------------------------#
+        #   完成深度可分离卷积后
+        #   对深度可分离卷积的结果施加注意力机制
+        #------------------------------------------------------#
         if self.has_se:
-            num_squeezed_channels = max(
-                1, int(self._block_args.input_filters * self._block_args.se_ratio))
-            self._se_reduce = Conv2d(
-                in_channels=oup, out_channels=num_squeezed_channels, kernel_size=1)
-            self._se_expand = Conv2d(
-                in_channels=num_squeezed_channels, out_channels=oup, kernel_size=1)
+            num_squeezed_channels = max(1, int(self._block_args.input_filters * self._block_args.se_ratio))
+            #------------------------------------------------------#
+            #   通道先压缩后上升，最后利用sigmoid将值固定到0-1之间
+            #------------------------------------------------------#
+            self._se_reduce = Conv2d(in_channels=oup, out_channels=num_squeezed_channels, kernel_size=1)
+            self._se_expand = Conv2d(in_channels=num_squeezed_channels, out_channels=oup, kernel_size=1)
 
-        # 输出部分
+        #------------------------------------------------------#
+        #   part3 利用1x1卷积进行通道下降
+        #------------------------------------------------------#
         final_oup = self._block_args.output_filters
-        self._project_conv = Conv2d(
-            in_channels=oup, out_channels=final_oup, kernel_size=1, bias=False)
-        self._bn2 = nn.BatchNorm2d(
-            num_features=final_oup, momentum=self._bn_mom, eps=self._bn_eps)
+        self._project_conv = Conv2d(in_channels=oup, out_channels=final_oup, kernel_size=1, bias=False)
+        self._bn2 = nn.BatchNorm2d(num_features=final_oup, momentum=self._bn_mom, eps=self._bn_eps)
+
         self._swish = MemoryEfficientSwish()
 
     def forward(self, inputs, drop_connect_rate=None):
         x = inputs
+        #-------------------------------------------------#
+        #   利用Inverted residuals
+        #   part1 利用1x1卷积进行通道数上升
+        #-------------------------------------------------#
         if self._block_args.expand_ratio != 1:
             x = self._swish(self._bn0(self._expand_conv(inputs)))
 
+        #------------------------------------------------------#
+        #   如果步长为2x2的话，利用深度可分离卷积进行高宽压缩
+        #   part2 利用3x3卷积对每一个channel进行卷积
+        #------------------------------------------------------#
         x = self._swish(self._bn1(self._depthwise_conv(x)))
 
-        # 添加了注意力机制
+        #------------------------------------------------------#
+        #   完成深度可分离卷积后
+        #   对深度可分离卷积的结果施加注意力机制
+        #------------------------------------------------------#
         if self.has_se:
             x_squeezed = F.adaptive_avg_pool2d(x, 1)
             x_squeezed = self._se_expand(
                 self._swish(self._se_reduce(x_squeezed)))
             x = torch.sigmoid(x_squeezed) * x
 
+        #------------------------------------------------------#
+        #   part3 利用1x1卷积进行通道下降
+        #------------------------------------------------------#
         x = self._bn2(self._project_conv(x))
 
-        # 满足以下条件才可以短接
+        #------------------------------------------------------#
+        #   part4 如果满足残差条件，那么就增加残差边
+        #------------------------------------------------------#
         input_filters, output_filters = self._block_args.input_filters, self._block_args.output_filters
         if self.id_skip and self._block_args.stride == 1 and input_filters == output_filters:
             if drop_connect_rate:
@@ -119,7 +137,7 @@ class EfficientNet(nn.Module):
      BlockArgs(kernel_size=5, num_repeat=4, input_filters=112, output_filters=192, expand_ratio=6, id_skip=True, stride=[2], se_ratio=0.25), 
      BlockArgs(kernel_size=3, num_repeat=1, input_filters=192, output_filters=320, expand_ratio=6, id_skip=True, stride=[1], se_ratio=0.25)]
     
-    GlobalParams(batch_norm_momentum=0.99, batch_norm_epsilon=0.001, dropout_rate=0.2, num_classes=1000, width_coefficient=1.0, 
+     GlobalParams(batch_norm_momentum=0.99, batch_norm_epsilon=0.001, dropout_rate=0.2, num_classes=1000, width_coefficient=1.0, 
                     depth_coefficient=1.0, depth_divisor=8, min_depth=None, drop_connect_rate=0.2, image_size=224)
     '''
     def __init__(self, blocks_args=None, global_params=None):
@@ -135,52 +153,66 @@ class EfficientNet(nn.Module):
         bn_mom = 1 - self._global_params.batch_norm_momentum
         bn_eps = self._global_params.batch_norm_epsilon
 
-        # 网络主干部分开始
-        # 设定输入进来的是RGB三通道图像
+        #-------------------------------------------------#
+        #   网络主干部分开始
+        #   设定输入进来的是RGB三通道图像
+        #   利用round_filters可以使得通道可以被8整除
+        #-------------------------------------------------#
         in_channels = 3  
-        # 利用round_filters可以使得通道数在扩张的时候可以被8整除
         out_channels = round_filters(32, self._global_params)
 
-        # 卷积+标准化
+        #-------------------------------------------------#
+        #   创建stem部分
+        #-------------------------------------------------#
         self._conv_stem = Conv2d(
             in_channels, out_channels, kernel_size=3, stride=2, bias=False)
         self._bn0 = nn.BatchNorm2d(
             num_features=out_channels, momentum=bn_mom, eps=bn_eps)
 
-        # 对每个block的参数进行修改
+        #-------------------------------------------------#
+        #   在这个地方对大结构块进行循环
+        #-------------------------------------------------#
         self._blocks = nn.ModuleList([])
         for i in range(len(self._blocks_args)):
-            # 对每个block的参数进行修改，根据所选的efficient版本进行修改
+            #-------------------------------------------------------------#
+            #   对每个block的参数进行修改，根据所选的efficient版本进行修改
+            #-------------------------------------------------------------#
             self._blocks_args[i] = self._blocks_args[i]._replace(
-                input_filters=round_filters(
-                    self._blocks_args[i].input_filters, self._global_params),
-                output_filters=round_filters(
-                    self._blocks_args[i].output_filters, self._global_params),
-                num_repeat=round_repeats(
-                    self._blocks_args[i].num_repeat, self._global_params)
+                input_filters=round_filters(self._blocks_args[i].input_filters, self._global_params),
+                output_filters=round_filters(self._blocks_args[i].output_filters, self._global_params),
+                num_repeat=round_repeats(self._blocks_args[i].num_repeat, self._global_params)
             )
 
-            # 第一次大的Block里面的卷积需要考虑步长和输入进来的通道数！
+            #-------------------------------------------------------------#
+            #   每个大结构块里面的第一个EfficientBlock
+            #   都需要考虑步长和输入通道数
+            #-------------------------------------------------------------#
             self._blocks.append(MBConvBlock(self._blocks_args[i], self._global_params))
 
             if self._blocks_args[i].num_repeat > 1:
                 self._blocks_args[i] = self._blocks_args[i]._replace(input_filters=self._blocks_args[i].output_filters, stride=1)
+
+            #---------------------------------------------------------------#
+            #   在利用第一个EfficientBlock进行通道数的调整或者高和宽的压缩后
+            #   进行EfficientBlock的堆叠
+            #---------------------------------------------------------------#
             for _ in range(self._blocks_args[i].num_repeat - 1):
                 self._blocks.append(MBConvBlock(self._blocks_args[i], self._global_params))
 
-        # 增加了head部分
+        #----------------------------------------------------------------#
+        #   这是efficientnet的尾部部分，在进行effcientdet构建的时候没用到
+        #   只在利用efficientnet进行分类的时候用到。
+        #----------------------------------------------------------------#
         in_channels = self._blocks_args[len(self._blocks_args)-1].output_filters
         out_channels = round_filters(1280, self._global_params)
 
-        # 卷积+标准化
         self._conv_head = Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
         self._bn1 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
 
-        # 最后的线性全连接层
         self._avg_pooling = nn.AdaptiveAvgPool2d(1)
         self._dropout = nn.Dropout(self._global_params.dropout_rate)
         self._fc = nn.Linear(out_channels, self._global_params.num_classes)
-        # 进行swish激活函数
+
         self._swish = MemoryEfficientSwish()
 
     def set_swish(self, memory_efficient=True):

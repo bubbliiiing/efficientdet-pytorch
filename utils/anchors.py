@@ -1,16 +1,16 @@
 import itertools
+
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
+
 
 class Anchors(nn.Module):
-    def __init__(self, anchor_scale=4., pyramid_levels=None):
+    def __init__(self, anchor_scale=4., pyramid_levels=[3, 4, 5, 6, 7]):
         super().__init__()
         self.anchor_scale = anchor_scale
-
-        if pyramid_levels is None:
-            self.pyramid_levels = [3, 4, 5, 6, 7]
-
+        self.pyramid_levels = pyramid_levels
+        # strides步长为[8, 16, 32, 64, 128]， 特征点的间距
         self.strides = [2 ** x for x in self.pyramid_levels]
         self.scales = np.array([2 ** 0, 2 ** (1.0 / 3.0), 2 ** (2.0 / 3.0)])
         self.ratios = [(1.0, 1.0), (1.4, 0.7), (0.7, 1.4)]
