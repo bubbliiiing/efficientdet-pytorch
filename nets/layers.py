@@ -11,7 +11,6 @@ from torch.utils import model_zoo
 #--------------------------------------------------------------#
 #   模型构建的辅助函数
 #--------------------------------------------------------------#
-
 GlobalParams = collections.namedtuple('GlobalParams', [
     'batch_norm_momentum', 'batch_norm_epsilon', 'dropout_rate',
     'num_classes', 'width_coefficient', 'depth_coefficient',
@@ -100,7 +99,7 @@ class Identity(nn.Module):
 def efficientnet_params(model_name):
     """ Map EfficientNet model name to parameter coefficients. """
     params_dict = {
-        # Coefficients:   width,depth,res,dropout
+        # Coefficients: width,depth,res,dropout
         'efficientnet-b0': (1.0, 1.0, 224, 0.2),
         'efficientnet-b1': (1.0, 1.1, 240, 0.2),
         'efficientnet-b2': (1.1, 1.2, 260, 0.3),

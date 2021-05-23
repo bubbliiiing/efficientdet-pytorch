@@ -1,21 +1,13 @@
-import math
-from random import shuffle
-
 import cv2
 import numpy as np
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 from PIL import Image
-from torch.autograd import Variable
-from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Dataset
 
 
 def preprocess_input(image):
     image /= 255
-    mean=(0.406, 0.456, 0.485)
-    std=(0.225, 0.224, 0.229)
+    mean = (0.406, 0.456, 0.485)
+    std = (0.225, 0.224, 0.229)
     image -= mean
     image /= std
     return image
@@ -23,11 +15,10 @@ def preprocess_input(image):
 class EfficientdetDataset(Dataset):
     def __init__(self, train_lines, image_size, is_train):
         super(EfficientdetDataset, self).__init__()
-
-        self.train_lines = train_lines
-        self.train_batches = len(train_lines)
-        self.image_size = image_size
-        self.is_train = is_train
+        self.train_lines    = train_lines
+        self.train_batches  = len(train_lines)
+        self.image_size     = image_size
+        self.is_train       = is_train
 
     def __len__(self):
         return self.train_batches

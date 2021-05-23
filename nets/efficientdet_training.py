@@ -1,14 +1,5 @@
-  
-import math
-from random import shuffle
-
-import cv2
-import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from PIL import Image
-
 
 def calc_iou(a, b):
     area = (b[:, 2] - b[:, 0]) * (b[:, 3] - b[:, 1])

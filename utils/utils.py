@@ -1,15 +1,8 @@
-from __future__ import division
-import os
-import math
-import time
-import torch
 import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
-import matplotlib.pyplot as plt
-from torch.autograd import Variable
-from PIL import Image, ImageDraw, ImageFont
+import torch
+from PIL import Image
 from torchvision.ops import nms
+
 
 def decodebox(regression, anchors, img):
     dtype = regression.dtype
@@ -168,12 +161,10 @@ def bbox_iou(box1, box2, x1y1x2y2=True):
 
     return iou
 
-
 def non_max_suppression(prediction, num_classes, conf_thres=0.5, nms_thres=0.4):
-
     output = [None for _ in range(len(prediction))]
+    
     for image_i, image_pred in enumerate(prediction):
-
         # 获得种类及其置信度
         class_conf, class_pred = torch.max(image_pred[:, 4:], 1, keepdim=True)
 

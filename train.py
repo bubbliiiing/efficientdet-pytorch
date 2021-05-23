@@ -1,16 +1,10 @@
 #-------------------------------------#
 #       对数据集进行训练
 #-------------------------------------#
-import os
-import time
-
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
-import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
-from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -34,12 +28,13 @@ def get_classes(classes_path):
     return class_names
 
 def fit_one_epoch(net,focal_loss,epoch,epoch_size,epoch_size_val,gen,genval,Epoch,cuda):
-    total_r_loss = 0
-    total_c_loss = 0
-    total_loss = 0
-    val_loss = 0
+    total_r_loss    = 0
+    total_c_loss    = 0
+    total_loss      = 0
+    val_loss        = 0
 
     net.train()
+    print('Start Train')
     with tqdm(total=epoch_size,desc=f'Epoch {epoch + 1}/{Epoch}',postfix=dict,mininterval=0.3) as pbar:
         for iteration, batch in enumerate(gen):
             if iteration >= epoch_size:
@@ -47,11 +42,11 @@ def fit_one_epoch(net,focal_loss,epoch,epoch_size,epoch_size_val,gen,genval,Epoc
             images, targets = batch[0], batch[1]
             with torch.no_grad():
                 if cuda:
-                    images = Variable(torch.from_numpy(images).type(torch.FloatTensor)).cuda()
-                    targets = [Variable(torch.from_numpy(ann).type(torch.FloatTensor)).cuda() for ann in targets]
+                    images  = torch.from_numpy(images).type(torch.FloatTensor).cuda()
+                    targets = [torch.from_numpy(ann).type(torch.FloatTensor).cuda() for ann in targets]
                 else:
-                    images = Variable(torch.from_numpy(images).type(torch.FloatTensor))
-                    targets = [Variable(torch.from_numpy(ann).type(torch.FloatTensor)) for ann in targets]
+                    images  = torch.from_numpy(images).type(torch.FloatTensor)
+                    targets = [torch.from_numpy(ann).type(torch.FloatTensor) for ann in targets]
 
             optimizer.zero_grad()
             _, regression, classification, anchors = net(images)
@@ -59,9 +54,9 @@ def fit_one_epoch(net,focal_loss,epoch,epoch_size,epoch_size_val,gen,genval,Epoc
             loss.backward()
             optimizer.step()
             
-            total_loss += loss.item()
-            total_r_loss += r_loss.item()
-            total_c_loss += c_loss.item()
+            total_loss      += loss.item()
+            total_r_loss    += r_loss.item()
+            total_c_loss    += c_loss.item()
             
             pbar.set_postfix(**{'Conf Loss'         : total_c_loss / (iteration+1), 
                                 'Regression Loss'   : total_r_loss / (iteration+1), 
@@ -78,11 +73,12 @@ def fit_one_epoch(net,focal_loss,epoch,epoch_size,epoch_size_val,gen,genval,Epoc
 
             with torch.no_grad():
                 if cuda:
-                    images_val = Variable(torch.from_numpy(images_val).type(torch.FloatTensor)).cuda()
-                    targets_val = [Variable(torch.from_numpy(ann).type(torch.FloatTensor)).cuda() for ann in targets_val]
+                    images_val  = torch.from_numpy(images_val).type(torch.FloatTensor).cuda()
+                    targets_val = [torch.from_numpy(ann).type(torch.FloatTensor).cuda() for ann in targets_val]
                 else:
-                    images_val = Variable(torch.from_numpy(images_val).type(torch.FloatTensor))
-                    targets_val = [Variable(torch.from_numpy(ann).type(torch.FloatTensor)) for ann in targets_val]
+                    images_val  = torch.from_numpy(images_val).type(torch.FloatTensor)
+                    targets_val = [torch.from_numpy(ann).type(torch.FloatTensor) for ann in targets_val]
+
                 optimizer.zero_grad()
                 _, regression, classification, anchors = net(images_val)
                 loss, c_loss, r_loss = focal_loss(classification, regression, anchors, targets_val, cuda=cuda)
@@ -96,7 +92,7 @@ def fit_one_epoch(net,focal_loss,epoch,epoch_size,epoch_size_val,gen,genval,Epoc
     print('Total Loss: %.4f || Val Loss: %.4f ' % (total_loss/(epoch_size+1),val_loss/(epoch_size_val+1)))
     print('Saving state, iter:', str(epoch+1))
     torch.save(model.state_dict(), 'logs/Epoch%d-Total_Loss%.4f-Val_Loss%.4f.pth'%((epoch+1),total_loss/(epoch_size+1),val_loss/(epoch_size_val+1)))
-    return val_loss/(epoch_size_val+1)
+    return val_loss / (epoch_size_val+1)
 
 #----------------------------------------------------#
 #   检测精度mAP和pr曲线计算参考视频
@@ -186,23 +182,27 @@ if __name__ == "__main__":
         #--------------------------------------------#
         #   BATCH_SIZE不要太小，不然训练效果很差
         #--------------------------------------------#
-        lr = 1e-3
-        Batch_size = 8
-        Init_Epoch = 0
-        Freeze_Epoch = 50
+        lr              = 1e-3
+        Batch_size      = 8
+        Init_Epoch      = 0
+        Freeze_Epoch    = 50
         
-        optimizer = optim.Adam(net.parameters(),lr,weight_decay=5e-4)
-        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=2, verbose=True)
+        optimizer       = optim.Adam(net.parameters(),lr,weight_decay=5e-4)
+        lr_scheduler    = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=3, verbose=True)
 
-        train_dataset = EfficientdetDataset(lines[:num_train], (input_shape[0], input_shape[1]), is_train=True)
-        val_dataset = EfficientdetDataset(lines[num_train:], (input_shape[0], input_shape[1]), is_train=False)
-        gen = DataLoader(train_dataset, shuffle=True, batch_size=Batch_size, num_workers=4, pin_memory=True,
+        train_dataset   = EfficientdetDataset(lines[:num_train], (input_shape[0], input_shape[1]), is_train=True)
+        val_dataset     = EfficientdetDataset(lines[num_train:], (input_shape[0], input_shape[1]), is_train=False)
+
+        gen             = DataLoader(train_dataset, shuffle=True, batch_size=Batch_size, num_workers=4, pin_memory=True,
                                 drop_last=True, collate_fn=efficientdet_dataset_collate)
-        gen_val = DataLoader(val_dataset, shuffle=True, batch_size=Batch_size, num_workers=4,pin_memory=True, 
+        gen_val         = DataLoader(val_dataset, shuffle=True, batch_size=Batch_size, num_workers=4, pin_memory=True, 
                                 drop_last=True, collate_fn=efficientdet_dataset_collate)
 
-        epoch_size = num_train//Batch_size
-        epoch_size_val = num_val//Batch_size
+        epoch_size      = num_train // Batch_size
+        epoch_size_val  = num_val // Batch_size
+        
+        if epoch_size == 0 or epoch_size_val == 0:
+            raise ValueError("数据集过小，无法进行训练，请扩充数据集。")
         #------------------------------------#
         #   冻结一定部分训练
         #------------------------------------#
@@ -217,24 +217,27 @@ if __name__ == "__main__":
         #--------------------------------------------#
         #   BATCH_SIZE不要太小，不然训练效果很差
         #--------------------------------------------#
-        lr = 1e-4
-        Batch_size = 4
-        Freeze_Epoch = 50
-        Unfreeze_Epoch = 100
+        lr              = 1e-4
+        Batch_size      = 4
+        Freeze_Epoch    = 50
+        Unfreeze_Epoch  = 100
 
-        optimizer = optim.Adam(net.parameters(),lr,weight_decay=5e-4)
-        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=2, verbose=True)
+        optimizer       = optim.Adam(net.parameters(),lr,weight_decay=5e-4)
+        lr_scheduler    = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=2, verbose=True)
 
-        train_dataset = EfficientdetDataset(lines[:num_train], (input_shape[0], input_shape[1]), is_train=True)
-        val_dataset = EfficientdetDataset(lines[num_train:], (input_shape[0], input_shape[1]), is_train=False)
-        gen = DataLoader(train_dataset, shuffle=True, batch_size=Batch_size, num_workers=4, pin_memory=True,
+        train_dataset   = EfficientdetDataset(lines[:num_train], (input_shape[0], input_shape[1]), is_train=True)
+        val_dataset     = EfficientdetDataset(lines[num_train:], (input_shape[0], input_shape[1]), is_train=False)
+        gen             = DataLoader(train_dataset, shuffle=True, batch_size=Batch_size, num_workers=4, pin_memory=True,
                                 drop_last=True, collate_fn=efficientdet_dataset_collate)
-        gen_val = DataLoader(val_dataset, shuffle=True, batch_size=Batch_size, num_workers=4,pin_memory=True, 
+        gen_val         = DataLoader(val_dataset, shuffle=True, batch_size=Batch_size, num_workers=4, pin_memory=True, 
                                 drop_last=True, collate_fn=efficientdet_dataset_collate)
 
                         
-        epoch_size = num_train//Batch_size
-        epoch_size_val = num_val//Batch_size
+        epoch_size      = num_train // Batch_size
+        epoch_size_val  = num_val // Batch_size
+        
+        if epoch_size == 0 or epoch_size_val == 0:
+            raise ValueError("数据集过小，无法进行训练，请扩充数据集。")
         #------------------------------------#
         #   解冻后训练
         #------------------------------------#

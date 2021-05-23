@@ -3,21 +3,15 @@
 #   具体视频教程可查看
 #   https://www.bilibili.com/video/BV1zE411u7Vw
 #----------------------------------------------------#
-import colorsys
 import os
 
-import cv2
 import numpy as np
 import torch
-import torch.backends.cudnn as cudnn
-import torch.nn as nn
-from PIL import Image, ImageDraw, ImageFont
-from torch.autograd import Variable
+from PIL import Image
 from tqdm import tqdm
 
 from efficientdet import EfficientDet
-from nets.efficientdet import EfficientDetBackbone
-from utils.utils import (bbox_iou, decodebox, efficientdet_correct_boxes,
+from utils.utils import (decodebox, efficientdet_correct_boxes,
                          letterbox_image, non_max_suppression)
 
 image_sizes = [512, 640, 768, 896, 1024, 1280, 1280, 1536]
@@ -37,8 +31,8 @@ image_sizes = [512, 640, 768, 896, 1024, 1280, 1280, 1536]
 '''
 def preprocess_input(image):
     image /= 255
-    mean=(0.406, 0.456, 0.485)
-    std=(0.225, 0.224, 0.229)
+    mean = (0.406, 0.456, 0.485)
+    std = (0.225, 0.224, 0.229)
     image -= mean
     image /= std
     return image
@@ -119,7 +113,6 @@ if not os.path.exists("./input/detection-results"):
 if not os.path.exists("./input/images-optional"):
     os.makedirs("./input/images-optional")
 
-
 for image_id in tqdm(image_ids):
     image_path = "./VOCdevkit/VOC2007/JPEGImages/"+image_id+".jpg"
     image = Image.open(image_path)
@@ -127,5 +120,4 @@ for image_id in tqdm(image_ids):
     # image.save("./input/images-optional/"+image_id+".jpg")
     efficientdet.detect_image(image_id,image)
     
-
 print("Conversion completed!")

@@ -6,7 +6,6 @@ from nets.efficientnet import EfficientNet as EffNet
 from nets.layers import (Conv2dStaticSamePadding, MaxPool2dStaticSamePadding,
                          MemoryEfficientSwish, Swish)
 
-
 #----------------------------------#
 #   Xception中深度可分离卷积
 #   先3x3的深度可分离卷积
@@ -18,8 +17,7 @@ class SeparableConvBlock(nn.Module):
         if out_channels is None:
             out_channels = in_channels
 
-        self.depthwise_conv = Conv2dStaticSamePadding(in_channels, in_channels,
-                                                      kernel_size=3, stride=1, groups=in_channels, bias=False)
+        self.depthwise_conv = Conv2dStaticSamePadding(in_channels, in_channels, kernel_size=3, stride=1, groups=in_channels, bias=False)
         self.pointwise_conv = Conv2dStaticSamePadding(in_channels, out_channels, kernel_size=1, stride=1)
 
         self.norm = norm
@@ -41,7 +39,6 @@ class SeparableConvBlock(nn.Module):
             x = self.swish(x)
 
         return x
-
 
 class BiFPN(nn.Module):
     def __init__(self, num_channels, conv_channels, first_time=False, epsilon=1e-4, onnx_export=False, attention=True):
@@ -340,11 +337,7 @@ class BiFPN(nn.Module):
 
             p7_out = self.conv7_down(self.swish(p7_in + self.p7_downsample(p6_out)))
 
-
-
-
         return p3_out, p4_out, p5_out, p6_out, p7_out
-
 
 class BoxNet(nn.Module):
     def __init__(self, in_channels, num_anchors, num_layers, onnx_export=False):
@@ -381,14 +374,13 @@ class BoxNet(nn.Module):
 
         return feats
 
-
 class ClassNet(nn.Module):
     def __init__(self, in_channels, num_anchors, num_classes, num_layers, onnx_export=False):
         super(ClassNet, self).__init__()
         self.num_anchors = num_anchors
         self.num_classes = num_classes
         self.num_layers = num_layers
-        self.conv_list = nn.ModuleList(
+        self.conv_list  = nn.ModuleList(
             [SeparableConvBlock(in_channels, in_channels, norm=False, activation=False) for i in range(num_layers)])
         # 每一个有效特征层对应的BatchNorm2d不同
         self.bn_list = nn.ModuleList(
@@ -421,7 +413,6 @@ class ClassNet(nn.Module):
 
         return feats
 
-
 class EfficientNet(nn.Module):
     def __init__(self, phi, load_weights=False):
         super(EfficientNet, self).__init__()
@@ -445,7 +436,6 @@ class EfficientNet(nn.Module):
             if drop_connect_rate:
                 drop_connect_rate *= float(idx) / len(self.model._blocks)
             x = block(x, drop_connect_rate=drop_connect_rate)
-
             #------------------------------------------------------#
             #   取出对应的特征层，如果某个EffcientBlock的步长为2的话
             #   意味着它的前一个特征层为有效特征层
@@ -458,7 +448,6 @@ class EfficientNet(nn.Module):
             last_x = x
         del last_x
         return feature_maps[1:]
-
 
 class EfficientDetBackbone(nn.Module):
     def __init__(self, num_classes=80, phi=0, load_weights=False):

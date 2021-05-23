@@ -1,24 +1,22 @@
 import colorsys
 import os
+import time
 
-import cv2
 import numpy as np
 import torch
-import torch.backends.cudnn as cudnn
 import torch.nn as nn
-from PIL import Image, ImageDraw, ImageFont
-from torch.autograd import Variable
+from PIL import ImageDraw, ImageFont
 
 from nets.efficientdet import EfficientDetBackbone
-from utils.utils import (bbox_iou, decodebox, efficientdet_correct_boxes,
+from utils.utils import (decodebox, efficientdet_correct_boxes,
                          letterbox_image, non_max_suppression)
 
 image_sizes = [512, 640, 768, 896, 1024, 1280, 1408, 1536]
 
 def preprocess_input(image):
     image /= 255
-    mean=(0.406, 0.456, 0.485)
-    std=(0.225, 0.224, 0.229)
+    mean = (0.406, 0.456, 0.485)
+    std = (0.225, 0.224, 0.229)
     image -= mean
     image /= std
     return image
@@ -53,6 +51,7 @@ class EfficientDet(object):
         self.__dict__.update(self._defaults)
         self.class_names = self._get_class()
         self.generate()
+        
     #---------------------------------------------------#
     #   获得所有的分类
     #---------------------------------------------------#
@@ -98,19 +97,23 @@ class EfficientDet(object):
     #   检测图片
     #---------------------------------------------------#
     def detect_image(self, image):
+        #---------------------------------------------------------#
+        #   在这里将图像转换成RGB图像，防止灰度图在预测时报错。
+        #---------------------------------------------------------#
+        image       = image.convert('RGB')
+
         image_shape = np.array(np.shape(image)[0:2])
         #---------------------------------------------------------#
         #   给图像增加灰条，实现不失真的resize
         #---------------------------------------------------------#
-        crop_img = np.array(letterbox_image(image, (image_sizes[self.phi], image_sizes[self.phi])))
-        photo = np.array(crop_img,dtype = np.float32)
-        photo = np.transpose(preprocess_input(photo), (2, 0, 1))
+        crop_img    = np.array(letterbox_image(image, (image_sizes[self.phi], image_sizes[self.phi])))
+        photo       = np.array(crop_img, dtype = np.float32)
+        photo       = np.transpose(preprocess_input(photo), (2, 0, 1))
 
         with torch.no_grad():
-            images = torch.from_numpy(np.asarray([photo]))
+            images  = torch.from_numpy(np.asarray([photo]))
             if self.cuda:
                 images = images.cuda()
-
             #---------------------------------------------------------#
             #   传入网络当中进行预测
             #---------------------------------------------------------#
@@ -120,7 +123,7 @@ class EfficientDet(object):
             #   将预测结果进行解码
             #-----------------------------------------------------------#
             regression = decodebox(regression, anchors, images)
-            detection = torch.cat([regression,classification],axis=-1)
+            detection = torch.cat([regression, classification],axis=-1)
             batch_detections = non_max_suppression(detection, len(self.class_names),
                                                     conf_thres=self.confidence,
                                                     nms_thres=self.iou)
@@ -188,3 +191,67 @@ class EfficientDet(object):
             del draw
         return image
 
+
+    def get_FPS(self, image, test_interval):
+        #---------------------------------------------------------#
+        #   在这里将图像转换成RGB图像，防止灰度图在预测时报错。
+        #---------------------------------------------------------#
+        image = image.convert('RGB')
+
+        image_shape = np.array(np.shape(image)[0:2])
+        #---------------------------------------------------------#
+        #   给图像增加灰条，实现不失真的resize
+        #---------------------------------------------------------#
+        crop_img    = np.array(letterbox_image(image, (image_sizes[self.phi], image_sizes[self.phi])))
+        photo       = np.array(crop_img, dtype = np.float32)
+        photo       = np.transpose(preprocess_input(photo), (2, 0, 1))
+
+        with torch.no_grad():
+            images = torch.from_numpy(np.asarray([photo]))
+            if self.cuda:
+                images = images.cuda()
+                
+            _, regression, classification, anchors = self.net(images)
+            
+            regression  = decodebox(regression, anchors, images)
+            detection   = torch.cat([regression,classification], axis=-1)
+            batch_detections = non_max_suppression(detection, len(self.class_names),
+                                                    conf_thres=self.confidence,
+                                                    nms_thres=self.iou)
+            try:
+                batch_detections = batch_detections[0].cpu().numpy()
+                top_index = batch_detections[:,4] > self.confidence
+                top_conf = batch_detections[top_index,4]
+                top_label = np.array(batch_detections[top_index,-1], np.int32)
+                top_bboxes = np.array(batch_detections[top_index,:4])
+                top_xmin, top_ymin, top_xmax, top_ymax = np.expand_dims(top_bboxes[:,0],-1),np.expand_dims(top_bboxes[:,1],-1),np.expand_dims(top_bboxes[:,2],-1),np.expand_dims(top_bboxes[:,3],-1)
+
+                boxes = efficientdet_correct_boxes(top_ymin,top_xmin,top_ymax,top_xmax,np.array([image_sizes[self.phi],image_sizes[self.phi]]),image_shape)
+            except:
+                pass 
+            
+        t1 = time.time()
+        for _ in range(test_interval):
+            with torch.no_grad():
+                _, regression, classification, anchors = self.net(images)
+                
+                regression = decodebox(regression, anchors, images)
+                detection = torch.cat([regression,classification],axis=-1)
+                batch_detections = non_max_suppression(detection, len(self.class_names),
+                                                        conf_thres=self.confidence,
+                                                        nms_thres=self.iou)
+                try:
+                    batch_detections = batch_detections[0].cpu().numpy()
+                    top_index = batch_detections[:,4] > self.confidence
+                    top_conf = batch_detections[top_index,4]
+                    top_label = np.array(batch_detections[top_index,-1], np.int32)
+                    top_bboxes = np.array(batch_detections[top_index,:4])
+                    top_xmin, top_ymin, top_xmax, top_ymax = np.expand_dims(top_bboxes[:,0],-1),np.expand_dims(top_bboxes[:,1],-1),np.expand_dims(top_bboxes[:,2],-1),np.expand_dims(top_bboxes[:,3],-1)
+
+                    boxes = efficientdet_correct_boxes(top_ymin,top_xmin,top_ymax,top_xmax,np.array([image_sizes[self.phi],image_sizes[self.phi]]),image_shape)
+                except:
+                    pass 
+
+        t2 = time.time()
+        tact_time = (t2 - t1) / test_interval
+        return tact_time
