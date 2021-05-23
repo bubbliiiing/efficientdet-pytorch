@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from nets.efficientdet import EfficientDetBackbone
-from nets.efficientdet_training import FocalLoss
+from nets.efficientdet_training import LossHistory, FocalLoss
 from utils.dataloader import EfficientdetDataset, efficientdet_dataset_collate
 
 
@@ -87,6 +87,7 @@ def fit_one_epoch(net,focal_loss,epoch,epoch_size,epoch_size_val,gen,genval,Epoc
             pbar.set_postfix(**{'total_loss': val_loss / (iteration + 1)})
             pbar.update(1)
 
+    loss_history.append_loss(total_loss/(epoch_size+1), val_loss/(epoch_size_val+1))
     print('Finish Validation')
     print('Epoch:'+ str(epoch+1) + '/' + str(Epoch))
     print('Total Loss: %.4f || Val Loss: %.4f ' % (total_loss/(epoch_size+1),val_loss/(epoch_size_val+1)))
@@ -150,8 +151,8 @@ if __name__ == "__main__":
         cudnn.benchmark = True
         net = net.cuda()
 
-    efficient_loss = FocalLoss()
-
+    efficient_loss  = FocalLoss()
+    loss_history    = LossHistory("logs/")
     #----------------------------------------------------#
     #   获得图片路径和标签
     #----------------------------------------------------#
