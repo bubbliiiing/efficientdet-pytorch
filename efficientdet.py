@@ -78,7 +78,6 @@ class EfficientDet(object):
         state_dict = torch.load(self.model_path)
         self.net.load_state_dict(state_dict)
         if self.cuda:
-            os.environ["CUDA_VISIBLE_DEVICES"] = '0'
             self.net = nn.DataParallel(self.net)
             self.net = self.net.cuda()
         print('{} model, anchors, and classes loaded.'.format(self.model_path))
