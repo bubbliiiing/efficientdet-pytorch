@@ -50,7 +50,7 @@ a、下载完库后解压，在百度网盘下载Efficientdet-d0到d7的权重�
 img/street.jpg
 ```
 可完成预测。  
-b、利用video.py可进行摄像头检测。  
+b、在predict.py里面进行设置可以进行fps测试和video视频检测。
 #### 2、使用自己训练的权重
 a、按照训练步骤训练。  
 b、在efficientdet.py文件里面，在如下部分修改model_path、classes_path和phi使其对应训练好的文件；**model_path对应logs文件夹下面的权值文件，classes_path是model_path对应分的类。phi为所使用的efficientdet的版本**。 
@@ -68,7 +68,7 @@ c、运行predict.py，输入
 img/street.jpg
 ```
 可完成预测。  
-d、利用video.py可进行摄像头检测。  
+d、在predict.py里面进行设置可以进行fps测试和video视频检测。
 
 ### 训练步骤
 1、本文使用VOC格式进行训练。  
