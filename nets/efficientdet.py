@@ -6,6 +6,7 @@ from nets.efficientnet import EfficientNet as EffNet
 from nets.layers import (Conv2dStaticSamePadding, MaxPool2dStaticSamePadding,
                          MemoryEfficientSwish, Swish)
 
+
 #----------------------------------#
 #   Xception中深度可分离卷积
 #   先3x3的深度可分离卷积
@@ -414,9 +415,9 @@ class ClassNet(nn.Module):
         return feats
 
 class EfficientNet(nn.Module):
-    def __init__(self, phi, load_weights=False):
+    def __init__(self, phi, pretrained=False):
         super(EfficientNet, self).__init__()
-        model = EffNet.from_pretrained(f'efficientnet-b{phi}', load_weights)
+        model = EffNet.from_pretrained(f'efficientnet-b{phi}', pretrained)
         del model._conv_head
         del model._bn1
         del model._avg_pooling
@@ -450,7 +451,7 @@ class EfficientNet(nn.Module):
         return feature_maps[1:]
 
 class EfficientDetBackbone(nn.Module):
-    def __init__(self, num_classes=80, phi=0, load_weights=False):
+    def __init__(self, num_classes = 80, phi = 0, pretrained = False):
         super(EfficientDetBackbone, self).__init__()
         #--------------------------------#
         #   phi指的是efficientdet的版本
@@ -477,6 +478,7 @@ class EfficientDetBackbone(nn.Module):
         #---------------------------------------------------#
         self.anchor_scale = [4., 4., 4., 4., 4., 4., 4., 5.]
         num_anchors = 9
+        
         conv_channel_coef = {
             0: [40, 112, 320],
             1: [40, 112, 320],
@@ -509,13 +511,13 @@ class EfficientDetBackbone(nn.Module):
         #   创建efficient head
         #   可以将特征层转换成预测结果
         #------------------------------------------------------#
-        self.regressor = BoxNet(in_channels=self.fpn_num_filters[self.phi], num_anchors=num_anchors,
-                                   num_layers=self.box_class_repeats[self.phi])
+        self.regressor      = BoxNet(in_channels=self.fpn_num_filters[self.phi], num_anchors=num_anchors,
+                                    num_layers=self.box_class_repeats[self.phi])
 
-        self.classifier = ClassNet(in_channels=self.fpn_num_filters[self.phi], num_anchors=num_anchors,
-                                     num_classes=num_classes, num_layers=self.box_class_repeats[self.phi])
+        self.classifier     = ClassNet(in_channels=self.fpn_num_filters[self.phi], num_anchors=num_anchors,
+                                    num_classes=num_classes, num_layers=self.box_class_repeats[self.phi])
 
-        self.anchors = Anchors(anchor_scale=self.anchor_scale[phi])
+        self.anchors        = Anchors(anchor_scale=self.anchor_scale[phi])
 
         #-------------------------------------------#
         #   获得三个shape的有效特征层
@@ -523,7 +525,7 @@ class EfficientDetBackbone(nn.Module):
         #         C4  32, 32, 112
         #         C5  16, 16, 320
         #-------------------------------------------#
-        self.backbone_net = EfficientNet(self.backbone_phi[phi], load_weights)
+        self.backbone_net   = EfficientNet(self.backbone_phi[phi], pretrained)
 
     def freeze_bn(self):
         for m in self.modules():
