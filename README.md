@@ -29,7 +29,8 @@ torch==1.2.0
 ### 文件下载  
 训练所需的pth可以在百度网盘下载。       
 包括Efficientdet-d0到d7所有权重。    
-链接: https://pan.baidu.com/s/1Kvv526YYSDJEf9BzWfIb3Q 提取码: f9g3  
+链接: https://pan.baidu.com/s/1Kvv526YYSDJEf9BzWfIb3Q     
+提取码: f9g3  
 
 VOC数据集下载地址如下，里面已经包括了训练集、测试集、验证集（与测试集一样），无需再次划分：  
 链接: https://pan.baidu.com/s/1YuBbBKxm2FGgTU5OfaeC5A    
