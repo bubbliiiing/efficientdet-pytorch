@@ -233,7 +233,7 @@ class Efficientdet(object):
                 #   将预测结果进行解码
                 #-----------------------------------------------------------#
                 outputs     = decodebox(regression, anchors, self.input_shape)
-                results     = non_max_suppression(torch.cat([outputs, classification], axis=-1), self.num_classes, self.input_shape, 
+                results     = non_max_suppression(torch.cat([outputs, classification], axis=-1), self.input_shape, 
                                         image_shape, self.letterbox_image, conf_thres = self.confidence, nms_thres = self.nms_iou)
 
         t2 = time.time()
