@@ -72,16 +72,16 @@ if __name__ == "__main__":
     #   
     #   当model_path = ''的时候不加载整个模型的权值。
     #
-    #   此处使用的是整个模型的权重，因此是在train.py进行加载的，下面的pretrain不影响此处的权值加载。
-    #   如果想要让模型从主干的预训练权值开始训练，则设置model_path = ''，下面的pretrain = True，此时仅加载主干。
-    #   如果想要让模型从0开始训练，则设置model_path = ''，下面的pretrain = Fasle，Freeze_Train = Fasle，此时从0开始训练，且没有冻结主干的过程。
+    #   此处使用的是整个模型的权重，因此是在train.py进行加载的，pretrain不影响此处的权值加载。
+    #   如果想要让模型从主干的预训练权值开始训练，则设置model_path = ''，pretrain = True，此时仅加载主干。
+    #   如果想要让模型从0开始训练，则设置model_path = ''，pretrain = Fasle，Freeze_Train = Fasle，此时从0开始训练，且没有冻结主干的过程。
     #   
     #   一般来讲，网络从0开始的训练效果会很差，因为权值太过随机，特征提取效果不明显，因此非常、非常、非常不建议大家从0开始训练！
     #   如果一定要从0开始，可以了解imagenet数据集，首先训练分类模型，获得网络的主干部分权值，分类模型的 主干部分 和该模型通用，基于此进行训练。
     #----------------------------------------------------------------------------------------------------------------------------#
     model_path      = 'model_data/efficientdet-d0.pth'
     #------------------------------------------------------#
-    #   input_shape     输入的shape大小，一定要是32的倍数
+    #   input_shape     输入的shape大小
     #------------------------------------------------------#
     input_shape     = [image_sizes[phi], image_sizes[phi]]
     
@@ -275,7 +275,6 @@ if __name__ == "__main__":
         
         if epoch_step == 0 or epoch_step_val == 0:
             raise ValueError("数据集过小，无法继续进行训练，请扩充数据集。")
-
 
         train_dataset   = EfficientdetDataset(train_lines, input_shape, num_classes, train = True)
         val_dataset     = EfficientdetDataset(val_lines, input_shape, num_classes, train = False)
