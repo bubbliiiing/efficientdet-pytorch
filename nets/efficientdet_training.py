@@ -38,8 +38,7 @@ def get_target(anchor, bbox_annotation, classification, cuda):
     #   寻找哪些先验框在计算loss的时候需要忽略
     #------------------------------------------------------#
     targets = torch.ones_like(classification) * -1
-    if cuda:
-        targets = targets.cuda()
+    targets = targets.type_as(classification)
 
     #------------------------------------------#
     #   重合度小于0.4需要参与训练
@@ -144,8 +143,8 @@ class FocalLoss(nn.Module):
                 #   当图片中不存在真实框的时候，所有特征点均为负样本
                 #-------------------------------------------------------#
                 alpha_factor = torch.ones_like(classification) * alpha
-                if cuda:
-                    alpha_factor = alpha_factor.cuda()
+                alpha_factor = alpha_factor.type_as(classification)
+
                 alpha_factor = 1. - alpha_factor
                 focal_weight = classification
                 focal_weight = alpha_factor * torch.pow(focal_weight, gamma)
@@ -161,10 +160,7 @@ class FocalLoss(nn.Module):
                 #-------------------------------------------------------#
                 #   回归损失此时为0
                 #-------------------------------------------------------#
-                if cuda:
-                    regression_losses.append(torch.tensor(0).to(dtype).cuda())
-                else:
-                    regression_losses.append(torch.tensor(0).to(dtype))
+                regression_losses.append(torch.tensor(0).type_as(classification))
                     
                 continue
 
@@ -182,8 +178,7 @@ class FocalLoss(nn.Module):
             #   首先计算交叉熵loss
             #------------------------------------------------------#
             alpha_factor = torch.ones_like(targets) * alpha
-            if cuda:
-                alpha_factor = alpha_factor.cuda()
+            alpha_factor = alpha_factor.type_as(classification)
             #------------------------------------------------------#
             #   这里使用的是Focal loss的思想，
             #   易分类样本权值小
@@ -200,8 +195,7 @@ class FocalLoss(nn.Module):
             #   把忽略的先验框的loss置为0
             #------------------------------------------------------#
             zeros = torch.zeros_like(cls_loss)
-            if cuda:
-                zeros = zeros.cuda()
+            zeros = zeros.type_as(cls_loss)
             cls_loss = torch.where(torch.ne(targets, -1.0), cls_loss, zeros)
 
             classification_losses.append(cls_loss.sum() / torch.clamp(num_positive_anchors.to(dtype), min=1.0))
@@ -223,10 +217,7 @@ class FocalLoss(nn.Module):
                 )
                 regression_losses.append(regression_loss.mean())
             else:
-                if cuda:
-                    regression_losses.append(torch.tensor(0).to(dtype).cuda())
-                else:
-                    regression_losses.append(torch.tensor(0).to(dtype))
+                regression_losses.append(torch.tensor(0).type_as(classification))
         
         # 计算平均loss并返回
         c_loss = torch.stack(classification_losses).mean()
