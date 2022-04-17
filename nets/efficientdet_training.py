@@ -137,7 +137,7 @@ class FocalLoss(nn.Module):
             classification = classifications[j, :, :]
             regression = regressions[j, :, :]
             
-            classification = torch.clamp(classification, 1e-4, 1.0 - 1e-4)
+            classification = torch.clamp(classification, 5e-4, 1.0 - 5e-4)
             
             if len(bbox_annotation) == 0:
                 #-------------------------------------------------------#
@@ -234,7 +234,7 @@ class FocalLoss(nn.Module):
         loss = c_loss + r_loss
         return loss, c_loss, r_loss
 
-def get_lr_scheduler(lr_decay_type, lr, min_lr, total_iters, warmup_iters_ratio = 0.1, warmup_lr_ratio = 0.1, no_aug_iter_ratio = 0.3, step_num = 10):
+def get_lr_scheduler(lr_decay_type, lr, min_lr, total_iters, warmup_iters_ratio = 0.05, warmup_lr_ratio = 0.1, no_aug_iter_ratio = 0.05, step_num = 10):
     def yolox_warm_cos_lr(lr, min_lr, total_iters, warmup_total_iters, warmup_lr_start, no_aug_iter, iters):
         if iters <= warmup_total_iters:
             # lr = (lr - warmup_lr_start) * iters / float(warmup_total_iters) + warmup_lr_start

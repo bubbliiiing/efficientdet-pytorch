@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import torch
 from PIL import Image
 from torch.utils.data.dataset import Dataset
 
@@ -152,6 +153,7 @@ def efficientdet_dataset_collate(batch):
     for img, box in batch:
         images.append(img)
         bboxes.append(box)
-    images = np.array(images)
+    images = torch.from_numpy(np.array(images)).type(torch.FloatTensor)
+    bboxes = [torch.from_numpy(ann).type(torch.FloatTensor) for ann in bboxes]
     return images, bboxes
 
