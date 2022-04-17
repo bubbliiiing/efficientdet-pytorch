@@ -58,3 +58,23 @@ def preprocess_input(image):
     image   -= mean
     image   /= std
     return image
+
+def download_weights(backbone, model_dir="./model_data"):
+    import os
+    from torch.hub import load_state_dict_from_url
+    
+    download_urls = {
+        'efficientnet-b0': 'https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientnet-b0.pth',
+        'efficientnet-b1': 'https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientnet-b1.pth',
+        'efficientnet-b2': 'https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientnet-b2.pth',
+        'efficientnet-b3': 'https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientnet-b3.pth',
+        'efficientnet-b4': 'https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientnet-b4.pth',
+        'efficientnet-b5': 'https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientnet-b5.pth',
+        'efficientnet-b6': 'https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientnet-b6.pth',
+        'efficientnet-b7': 'https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientnet-b7.pth',
+    }
+    url = download_urls[backbone]
+    
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+    load_state_dict_from_url(url, model_dir)

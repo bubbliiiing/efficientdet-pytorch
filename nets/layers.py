@@ -188,7 +188,6 @@ class BlockDecoder(object):
             block_strings.append(BlockDecoder._encode_block_string(block))
         return block_strings
 
-
 def efficientnet(width_coefficient=None, depth_coefficient=None, dropout_rate=0.2,
                  drop_connect_rate=0.2, image_size=None, num_classes=1000):
     """ Creates a efficientnet model. """
@@ -217,7 +216,6 @@ def efficientnet(width_coefficient=None, depth_coefficient=None, dropout_rate=0.
 
     return blocks_args, global_params
 
-
 def get_model_params(model_name, override_params):
     """ Get the block args and global params for a given model """
     if model_name.startswith('efficientnet'):
@@ -232,36 +230,22 @@ def get_model_params(model_name, override_params):
         global_params = global_params._replace(**override_params)
     return blocks_args, global_params
 
-
 url_map = {
-    'efficientnet-b0': 'https://publicmodels.blob.core.windows.net/container/aa/efficientnet-b0-355c32eb.pth',
-    'efficientnet-b1': 'https://publicmodels.blob.core.windows.net/container/aa/efficientnet-b1-f1951068.pth',
-    'efficientnet-b2': 'https://publicmodels.blob.core.windows.net/container/aa/efficientnet-b2-8bb594d6.pth',
-    'efficientnet-b3': 'https://publicmodels.blob.core.windows.net/container/aa/efficientnet-b3-5fb5a3c3.pth',
-    'efficientnet-b4': 'https://publicmodels.blob.core.windows.net/container/aa/efficientnet-b4-6ed6700e.pth',
-    'efficientnet-b5': 'https://publicmodels.blob.core.windows.net/container/aa/efficientnet-b5-b6417697.pth',
-    'efficientnet-b6': 'https://publicmodels.blob.core.windows.net/container/aa/efficientnet-b6-c76e70fd.pth',
-    'efficientnet-b7': 'https://publicmodels.blob.core.windows.net/container/aa/efficientnet-b7-dcc49843.pth',
+    'efficientnet-b0': 'https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientnet-b0.pth',
+    'efficientnet-b1': 'https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientnet-b1.pth',
+    'efficientnet-b2': 'https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientnet-b2.pth',
+    'efficientnet-b3': 'https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientnet-b3.pth',
+    'efficientnet-b4': 'https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientnet-b4.pth',
+    'efficientnet-b5': 'https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientnet-b5.pth',
+    'efficientnet-b6': 'https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientnet-b6.pth',
+    'efficientnet-b7': 'https://github.com/bubbliiiing/efficientdet-pytorch/releases/download/v1.0/efficientnet-b7.pth',
 }
-
-url_map_advprop = {
-    'efficientnet-b0': 'https://publicmodels.blob.core.windows.net/container/advprop/efficientnet-b0-b64d5a18.pth',
-    'efficientnet-b1': 'https://publicmodels.blob.core.windows.net/container/advprop/efficientnet-b1-0f3ce85a.pth',
-    'efficientnet-b2': 'https://publicmodels.blob.core.windows.net/container/advprop/efficientnet-b2-6e9d97e5.pth',
-    'efficientnet-b3': 'https://publicmodels.blob.core.windows.net/container/advprop/efficientnet-b3-cdd7c0f4.pth',
-    'efficientnet-b4': 'https://publicmodels.blob.core.windows.net/container/advprop/efficientnet-b4-44fb3a87.pth',
-    'efficientnet-b5': 'https://publicmodels.blob.core.windows.net/container/advprop/efficientnet-b5-86493f6b.pth',
-    'efficientnet-b6': 'https://publicmodels.blob.core.windows.net/container/advprop/efficientnet-b6-ac80338e.pth',
-    'efficientnet-b7': 'https://publicmodels.blob.core.windows.net/container/advprop/efficientnet-b7-4652b6dd.pth',
-    'efficientnet-b8': 'https://publicmodels.blob.core.windows.net/container/advprop/efficientnet-b8-22a8fe65.pth',
-}
-
 
 def load_pretrained_weights(model, model_name, load_fc=True, advprop=False):
     """ Loads pretrained weights, and downloads if loading for the first time. """
     # AutoAugment or Advprop (different preprocessing)
-    url_map_ = url_map_advprop if advprop else url_map
-    state_dict = model_zoo.load_url(url_map_[model_name], map_location=torch.device('cpu'))
+    url_map_ = url_map
+    state_dict = model_zoo.load_url(url_map_[model_name], map_location=torch.device('cpu'), model_dir="./model_data")
     # state_dict = torch.load('../../weights/backbone_efficientnetb0.pth')
     if load_fc:
         ret = model.load_state_dict(state_dict, strict=False)
@@ -272,8 +256,6 @@ def load_pretrained_weights(model, model_name, load_fc=True, advprop=False):
         res = model.load_state_dict(state_dict, strict=False)
         assert set(res.missing_keys) == set(['_fc.weight', '_fc.bias']), 'issue loading pretrained weights'
     print('Loaded pretrained weights for {}'.format(model_name))
-
-
 
 class SwishImplementation(torch.autograd.Function):
     @staticmethod
@@ -288,11 +270,9 @@ class SwishImplementation(torch.autograd.Function):
         sigmoid_i = torch.sigmoid(i)
         return grad_output * (sigmoid_i * (1 + i * (1 - sigmoid_i)))
 
-
 class MemoryEfficientSwish(nn.Module):
     def forward(self, x):
         return SwishImplementation.apply(x)
-
 
 class Swish(nn.Module):
     def forward(self, x):
@@ -332,7 +312,6 @@ class Conv2dStaticSamePadding(nn.Module):
 
         x = self.conv(x)
         return x
-
 
 class MaxPool2dStaticSamePadding(nn.Module):
     def __init__(self, *args, **kwargs):

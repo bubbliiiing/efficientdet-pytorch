@@ -16,7 +16,7 @@ from nets.efficientdet_training import (FocalLoss, get_lr_scheduler,
                                         set_optimizer_lr)
 from utils.callbacks import LossHistory
 from utils.dataloader import EfficientdetDataset, efficientdet_dataset_collate
-from utils.utils import get_classes, image_sizes
+from utils.utils import download_weights, get_classes, image_sizes
 from utils.utils_fit import fit_one_epoch
 
 warnings.filterwarnings("ignore")
@@ -229,6 +229,15 @@ if __name__ == "__main__":
     else:
         device          = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         local_rank      = 0
+
+    if pretrained:
+        backbone = "efficientnet-b" + str(phi)
+        if distributed:
+            if local_rank == 0:
+                download_weights(backbone)  
+            dist.barrier()
+        else:
+            download_weights(backbone)
 
     #----------------------------------------------------#
     #   获取classes和anchor
