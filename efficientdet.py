@@ -9,7 +9,7 @@ from PIL import ImageDraw, ImageFont
 
 from nets.efficientdet import EfficientDetBackbone
 from utils.utils import (cvtColor, get_classes, image_sizes, preprocess_input,
-                         resize_image)
+                         resize_image, show_config)
 from utils.utils_bbox import decodebox, non_max_suppression
 
 
@@ -67,6 +67,7 @@ class Efficientdet(object):
     #---------------------------------------------------#
     def __init__(self, **kwargs):
         self.__dict__.update(self._defaults)
+        show_config(**self._defaults)
         for name, value in kwargs.items():
             setattr(self, name, value)
         self.input_shape                    = [image_sizes[self.phi], image_sizes[self.phi]]
