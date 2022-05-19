@@ -1,6 +1,7 @@
 #-------------------------------------#
 #       对数据集进行训练
 #-------------------------------------#
+import datetime
 import os
 import warnings
 
@@ -14,12 +15,13 @@ from torch.utils.data import DataLoader
 from nets.efficientdet import EfficientDetBackbone
 from nets.efficientdet_training import (FocalLoss, get_lr_scheduler,
                                         set_optimizer_lr)
-from utils.callbacks import LossHistory
+from utils.callbacks import EvalCallback, LossHistory
 from utils.dataloader import EfficientdetDataset, efficientdet_dataset_collate
 from utils.utils import download_weights, get_classes, image_sizes, show_config
 from utils.utils_fit import fit_one_epoch
 
 warnings.filterwarnings("ignore")
+
 '''
 训练自己的目标检测模型一定需要注意以下几点：
 1、训练前仔细检查自己的格式是否满足要求，该库要求数据集格式为VOC格式，需要准备好的内容有输入图片和标签
@@ -198,6 +200,17 @@ if __name__ == "__main__":
     #------------------------------------------------------------------#
     save_dir            = 'logs'
     #------------------------------------------------------------------#
+    #   eval_flag       是否在训练时进行评估，评估对象为验证集
+    #                   安装pycocotools库后，评估体验更佳。
+    #   eval_period     代表多少个epoch评估一次，不建议频繁的评估
+    #                   评估需要消耗较多的时间，频繁评估会导致训练非常慢
+    #   此处获得的mAP会与get_map.py获得的会有所不同，原因有二：
+    #   （一）此处获得的mAP为验证集的mAP。
+    #   （二）此处设置评估参数较为保守，目的是加快评估速度。
+    #------------------------------------------------------------------#
+    eval_flag           = True
+    eval_period         = 5
+    #------------------------------------------------------------------#
     #   num_workers     用于设置是否使用多线程读取数据，1代表关闭多线程
     #                   开启后会加快数据读取速度，但是会占用更多内存
     #                   在IO为瓶颈的时候再开启多线程，即GPU运算速度远大于读取图片的速度。
@@ -286,9 +299,11 @@ if __name__ == "__main__":
     #   记录Loss
     #----------------------#
     if local_rank == 0:
-        loss_history = LossHistory(save_dir, model, input_shape=input_shape)
+        time_str        = datetime.datetime.strftime(datetime.datetime.now(),'%Y_%m_%d_%H_%M_%S')
+        log_dir         = os.path.join(save_dir, "loss_" + str(time_str))
+        loss_history    = LossHistory(log_dir, model, input_shape=input_shape)
     else:
-        loss_history = None
+        loss_history    = None
         
     #------------------------------------------------------------------#
     #   torch 1.2不支持amp，建议使用torch 1.7.1及以上正确使用fp16
@@ -423,6 +438,15 @@ if __name__ == "__main__":
         gen_val         = DataLoader(val_dataset  , shuffle = shuffle, batch_size = batch_size, num_workers = num_workers, pin_memory=True, 
                                     drop_last=True, collate_fn=efficientdet_dataset_collate, sampler=val_sampler)
 
+        #----------------------#
+        #   记录eval的map曲线
+        #----------------------#
+        if local_rank == 0:
+            eval_callback   = EvalCallback(model, input_shape, class_names, num_classes, val_lines, log_dir, Cuda, \
+                                            eval_flag=eval_flag, period=eval_period)
+        else:
+            eval_callback   = None
+        
         #---------------------------------------#
         #   开始模型训练
         #---------------------------------------#
@@ -471,7 +495,7 @@ if __name__ == "__main__":
                 
             set_optimizer_lr(optimizer, lr_scheduler_func, epoch)
             
-            fit_one_epoch(model_train, model, focal_loss, loss_history, optimizer, epoch, 
+            fit_one_epoch(model_train, model, focal_loss, loss_history, eval_callback, optimizer, epoch, 
                     epoch_step, epoch_step_val, gen, gen_val, UnFreeze_Epoch, Cuda, fp16, scaler, save_period, save_dir, local_rank)
             
         if local_rank == 0:
