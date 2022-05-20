@@ -497,6 +497,9 @@ if __name__ == "__main__":
             
             fit_one_epoch(model_train, model, focal_loss, loss_history, eval_callback, optimizer, epoch, 
                     epoch_step, epoch_step_val, gen, gen_val, UnFreeze_Epoch, Cuda, fp16, scaler, save_period, save_dir, local_rank)
-            
+                        
+            if distributed:
+                dist.barrier()
+
         if local_rank == 0:
             loss_history.writer.close()
