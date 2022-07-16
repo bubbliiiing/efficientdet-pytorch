@@ -69,6 +69,8 @@ class Efficientdet(object):
         self.__dict__.update(self._defaults)
         for name, value in kwargs.items():
             setattr(self, name, value)
+            self._defaults[name] = value 
+
         self.input_shape                    = [image_sizes[self.phi], image_sizes[self.phi]]
         #---------------------------------------------------#
         #   计算总的类的数量
